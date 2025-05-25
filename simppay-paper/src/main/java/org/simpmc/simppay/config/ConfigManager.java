@@ -14,6 +14,7 @@ import org.simpmc.simppay.config.serializers.SoundComponentSerializer;
 import org.simpmc.simppay.config.types.*;
 import org.simpmc.simppay.config.types.banking.PayosConfig;
 import org.simpmc.simppay.config.types.card.ThesieutocConfig;
+import org.simpmc.simppay.config.types.card.ThesieuvietConfig;
 import org.simpmc.simppay.config.types.menu.PaymentHistoryMenuConfig;
 import org.simpmc.simppay.config.types.menu.ServerPaymentHistoryMenuConfig;
 import org.simpmc.simppay.config.types.menu.card.CardListMenuConfig;
@@ -38,6 +39,7 @@ public class ConfigManager {
             // TODO: ClassGraph auto scan ?
             PayosConfig.class,
             ThesieutocConfig.class,
+            ThesieuvietConfig.class,
             CardPinMenuConfig.class,
             CardSerialMenuConfig.class,
             CardListMenuConfig.class,
