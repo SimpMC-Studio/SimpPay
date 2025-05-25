@@ -29,7 +29,7 @@ public class HttpUtils {
             return null;
         }
     }
-    //Herz đã thêm phần này cho Thẻ Siêu Việt
+
     public static JsonObject postJsonResponse(String url, JsonObject data, JsonObject headers) {
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
@@ -53,7 +53,6 @@ public class HttpUtils {
         }
     }
 
-    // Herz also here
     public static JsonObject getJsonResponse(String url, JsonObject headers) {
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
