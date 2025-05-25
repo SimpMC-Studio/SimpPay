@@ -2,6 +2,6 @@ package org.simpmc.simppay.exception;
 
 public class CardProcessException extends RuntimeException {
     public CardProcessException(String message) {
-        super("Error happened when trying to fetch card returned data while sending" + message);
+        super("An error occurred while trying to fetch the data returned by the card during sending" + message);
     }
 }
