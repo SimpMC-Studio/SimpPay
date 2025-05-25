@@ -17,7 +17,6 @@ depend:
   - PlayerPoints
 softdepend:
   - floodgate
-
 permission:
   simppay.napthe:
     default: true
