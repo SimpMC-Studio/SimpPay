@@ -17,6 +17,7 @@ import org.simpmc.simppay.config.types.menu.PaymentHistoryMenuConfig;
 import org.simpmc.simppay.data.PaymentType;
 import org.simpmc.simppay.database.dto.PaymentRecord;
 import org.simpmc.simppay.database.entities.SPPlayer;
+import org.simpmc.simppay.util.CalendarUtil;
 import org.simpmc.simppay.util.MessageUtil;
 
 import java.time.Instant;
@@ -33,15 +34,14 @@ public class PaymentHistoryView extends View {
             .elementFactory((ctx, bukkitItemComponentBuilder, i, paymentRecord) -> {
                 PaymentHistoryMenuConfig config = ConfigManager.getInstance().getConfig(PaymentHistoryMenuConfig.class);
                 MessageUtil.debug(paymentRecord.toString());
-                if (paymentRecord.getPaymentType() == PaymentType.BANKING) {
+                if (paymentRecord.getPaymentType() == PaymentType.CARD) {
                     DisplayItem item = config.cardItem.clone().replaceStringInName("{amount}", value -> {
                         String formattedValue = String.format("%,.0f", paymentRecord.getAmount());
                         return formattedValue + "đ";
-                    });
+                    }).replaceStringInName("{card_type}", paymentRecord.getTelco());
                     List<String> lores = item.getLores().stream()
                             .map(line ->
-                                    line.replace("{time}", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                                    .format(Instant.ofEpochMilli(paymentRecord.getTimestamp().getTime()).atZone(ZoneId.systemDefault())))
+                                    line.replace("{time}", CalendarUtil.getFormattedTimestamp(paymentRecord.getTimestamp().getTime()))
                                             .replace("{serial}", paymentRecord.getSerial().orElse("0"))
                                             .replace("{pin}", paymentRecord.getPin().orElse("0"))
                                             .replace("{api}", paymentRecord.getProvider())
@@ -60,7 +60,7 @@ public class PaymentHistoryView extends View {
                             .replaceStringInName("{card_type}", paymentRecord.getTelco());
                     List<String> lores = item.getLores().stream()
                             .map(line ->
-                                    line.replace("{time}", String.valueOf(paymentRecord.getTimestamp()))
+                                    line.replace("{time}", CalendarUtil.getFormattedTimestamp(paymentRecord.getTimestamp().getTime()))
                                             .replace("{api}", paymentRecord.getProvider())
                                             .replace("{transaction_id}", paymentRecord.getRefId()
                                             ))
@@ -86,7 +86,7 @@ public class PaymentHistoryView extends View {
     public void onInit(ViewConfigBuilder config) {
         config.cancelInteractions();
         config.layout(ConfigManager.getInstance().getConfig(PaymentHistoryMenuConfig.class).layout.toArray(new String[0]));
-        Component title = MessageUtil.getComponentParsed(ConfigManager.getInstance().getConfig(PaymentHistoryMenuConfig.class).title.replace("{page}", "1"), null);
+        Component title = MessageUtil.getComponentParsed(ConfigManager.getInstance().getConfig(PaymentHistoryMenuConfig.class).title, null);
         config.title(title);
     }
 

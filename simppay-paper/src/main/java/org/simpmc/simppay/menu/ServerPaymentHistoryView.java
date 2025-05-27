@@ -15,11 +15,9 @@ import org.simpmc.simppay.config.types.data.menu.RoleType;
 import org.simpmc.simppay.config.types.menu.ServerPaymentHistoryMenuConfig;
 import org.simpmc.simppay.data.PaymentType;
 import org.simpmc.simppay.database.dto.PaymentRecord;
+import org.simpmc.simppay.util.CalendarUtil;
 import org.simpmc.simppay.util.MessageUtil;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -31,19 +29,19 @@ public class ServerPaymentHistoryView extends View {
             .elementFactory((ctx, bukkitItemComponentBuilder, i, paymentRecord) -> {
                 ServerPaymentHistoryMenuConfig config = ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class);
                 MessageUtil.debug(paymentRecord.toString());
-                if (paymentRecord.getPaymentType() == PaymentType.BANKING) {
+                if (paymentRecord.getPaymentType() == PaymentType.CARD) {
                     DisplayItem item = config.cardItem.clone().replaceStringInName("{amount}", value -> {
                         String formattedValue = String.format("%,.0f", paymentRecord.getAmount());
                         return formattedValue + "đ";
-                    });
+                    }).replaceStringInName("{card_type}", paymentRecord.getTelco());
                     List<String> lores = item.getLores().stream()
                             .map(line ->
-                                    line.replace("{time}", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                                    .format(Instant.ofEpochMilli(paymentRecord.getTimestamp().getTime()).atZone(ZoneId.systemDefault())))
+                                    line.replace("{time}", CalendarUtil.getFormattedTimestamp(paymentRecord.getTimestamp().getTime()))
                                             .replace("{serial}", paymentRecord.getSerial().orElse("0"))
                                             .replace("{pin}", paymentRecord.getPin().orElse("0"))
                                             .replace("{api}", paymentRecord.getProvider())
-                                            .replace("{transaction_id}", paymentRecord.getRefId()
+                                            .replace("{transaction_id}", paymentRecord.getRefId())
+                                            .replace("{name}", paymentRecord.getPlayerName()
                                             ))
                             .toList();
                     item.setLores(lores);
@@ -58,9 +56,10 @@ public class ServerPaymentHistoryView extends View {
                             .replaceStringInName("{card_type}", paymentRecord.getTelco());
                     List<String> lores = item.getLores().stream()
                             .map(line ->
-                                    line.replace("{time}", String.valueOf(paymentRecord.getTimestamp()))
+                                    line.replace("{time}", CalendarUtil.getFormattedTimestamp(paymentRecord.getTimestamp().getTime()))
                                             .replace("{api}", paymentRecord.getProvider())
-                                            .replace("{transaction_id}", paymentRecord.getRefId()
+                                            .replace("{transaction_id}", paymentRecord.getRefId())
+                                            .replace("{name}", paymentRecord.getPlayerName()
                                             ))
                             .toList();
                     item.setLores(lores);
@@ -84,7 +83,7 @@ public class ServerPaymentHistoryView extends View {
     public void onInit(ViewConfigBuilder config) {
         config.cancelInteractions();
         config.layout(ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class).layout.toArray(new String[0]));
-        Component title = MessageUtil.getComponentParsed(ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class).title.replace("{page}", "1"), null);
+        Component title = MessageUtil.getComponentParsed(ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class).title, null);
         config.title(title);
     }
 

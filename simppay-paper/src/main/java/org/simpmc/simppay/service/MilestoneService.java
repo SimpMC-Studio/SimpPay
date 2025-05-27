@@ -71,6 +71,7 @@ public class MilestoneService {
                 }
                 MessageUtil.debug("Loading MocNap Server " + type.name());
                 for (MilestoneConfig config : entry.getValue()) {
+
                     if (config.amount <= entireServerAmount) {
                         continue;
                     }
@@ -87,14 +88,19 @@ public class MilestoneService {
                         case YEARLY -> paymentLogService.getEntireServerYearlyAmount();
                         default -> throw new IllegalStateException("Unexpected value: " + config.getType());
                     };
-                    BossBar bossBar = BossBar.bossBar(
-                            MessageUtil.getComponentParsed(bossBarConfig.getTitle(), null), // bossbar title will be loaded after
-                            (float) (serverBal / config.amount),
-                            config.bossbar.color,
-                            config.bossbar.style
-                    );
-                    serverBossbars.add(new ObjectObjectMutablePair<>(config, bossBar));
+                    if (config.bossbar.enabled) {
+                        BossBar bossBar = BossBar.bossBar(
+                                MessageUtil.getComponentParsed(bossBarConfig.getTitle(), null), // bossbar title will be loaded after
+                                (float) (serverBal / config.amount),
+                                config.bossbar.color,
+                                config.bossbar.style
+                        );
+                        serverBossbars.add(new ObjectObjectMutablePair<>(config, bossBar));
+                        MessageUtil.debug("Loaded MocNap Server BossBar " + type.name() + " " + config.amount);
+                    }
                     serverCurrentMilestones.add(config);
+                    MessageUtil.debug("Loaded MocNap Server Entry For Player " + type.name() + " " + config.amount);
+
                 }
             }
         });
@@ -137,15 +143,19 @@ public class MilestoneService {
                         case MilestoneType.YEARLY -> paymentLogService.getPlayerYearlyAmount(player);
                         default -> throw new IllegalStateException("Unexpected value: " + config.getType());
                     };
-                    BossBar bossBar = BossBar.bossBar(
-                            MessageUtil.getComponentParsed(bossBarConfig.getTitle(), null), // bossbar title will be loaded after
-                            (float) (playerBal / config.amount),
-                            config.bossbar.color,
-                            config.bossbar.style
-                    );
-                    MessageUtil.debug("Loaded MocNap Entry For Player " + type.name() + " " + config.amount);
-                    playerBossBars.get(uuid).add(new ObjectObjectMutablePair<>(config, bossBar));
+                    if (config.bossbar.enabled) {
+                        BossBar bossBar = BossBar.bossBar(
+                                MessageUtil.getComponentParsed(bossBarConfig.getTitle(), null), // bossbar title will be loaded after
+                                (float) (playerBal / config.amount),
+                                config.bossbar.color,
+                                config.bossbar.style
+                        );
+                        playerBossBars.get(uuid).add(new ObjectObjectMutablePair<>(config, bossBar));
+                        MessageUtil.debug("Loaded MocNap BossBar For Player " + type.name() + " " + config.amount);
+                    }
                     playerCurrentMilestones.get(uuid).add(config);
+                    MessageUtil.debug("Loaded MocNap Entry For Player " + type.name() + " " + config.amount);
+
                 }
 
             }

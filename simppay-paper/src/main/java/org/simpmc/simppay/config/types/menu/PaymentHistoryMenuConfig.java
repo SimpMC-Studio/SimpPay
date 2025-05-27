@@ -15,7 +15,7 @@ import java.util.Map;
 @Folder("menus")
 public class PaymentHistoryMenuConfig {
     @Comment("Title có hỗ trợ PlaceholderAPI")
-    public String title = "<gold>Lịch sử nạp của <white><papi:player_name>";
+    public String title = "<gold>Lịch sử nạp";
 
     public List<String> layout = Arrays.asList(
             "#########",

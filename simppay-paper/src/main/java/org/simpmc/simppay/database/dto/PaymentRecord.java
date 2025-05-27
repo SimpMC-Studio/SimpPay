@@ -17,6 +17,7 @@ import java.util.UUID;
 public class PaymentRecord {
     private UUID paymentId;
     private Date timestamp;
+    private String playerName; // optional
     private PaymentType paymentType;      // e.g. "Bank" or "Card"
     private String provider;      // bank API name or card type
     private Optional<String> serial;
@@ -30,6 +31,7 @@ public class PaymentRecord {
         return PaymentRecord.builder()
                 .paymentId(bp.getPaymentID())
                 .timestamp(Date.from(Instant.ofEpochSecond(bp.getTimestamp()))) // TODO: better way to handle this
+                .playerName(bp.getPlayer().getName())
                 .paymentType(PaymentType.BANKING)
                 .provider(bp.getApiProvider().name())
                 .serial(Optional.empty())
@@ -46,6 +48,7 @@ public class PaymentRecord {
                 .paymentId(cp.getPaymentID())
                 .timestamp(Date.from(Instant.ofEpochSecond(cp.getTimestamp()))) // TODO: better way to handle this
                 .paymentType(PaymentType.CARD)
+                .playerName(cp.getPlayer().getName())
                 .provider(cp.getApiProvider().name())
                 .serial(Optional.of(cp.getSerial()))
                 .pin(Optional.of(cp.getPin()))

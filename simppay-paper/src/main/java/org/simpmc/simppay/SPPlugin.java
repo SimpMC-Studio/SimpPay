@@ -32,6 +32,8 @@ import org.simpmc.simppay.service.MilestoneService;
 import org.simpmc.simppay.service.OrderIDService;
 import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.service.cache.CacheDataService;
+import org.simpmc.simppay.util.FloodgateUtil;
+import org.simpmc.simppay.util.MessageUtil;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -76,7 +78,10 @@ public final class SPPlugin extends JavaPlugin {
         // Reset config
         PacketEvents.getAPI().init();
         registerMetrics();
-
+        if (getServer().getPluginManager().getPlugin("floodgate") != null) {
+            FloodgateUtil.enableFloodgate = true;
+            getLogger().info("Enabled floodgate support");
+        }
         // Thanks CHATGPT, qua met r
         OrderIDService.init(this);
         instance = this;

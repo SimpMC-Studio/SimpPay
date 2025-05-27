@@ -11,28 +11,25 @@ import org.simpmc.simppay.database.entities.SPPlayer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+
 public class ViewHistoryForm {
     public static SimpleForm getHistoryForm(Player player) {
+        List<PaymentRecord> paymentRecords = fetchPaymentRecordsAsync(player);
         SimpleForm.Builder simpleForm = SimpleForm.builder();
-
-        fetchPaymentRecordsAsync(player).thenAccept(paymentRecords -> {
-            for (PaymentRecord paymentRecord : paymentRecords) {
-                // TODO: Check and fix this
-                String message = String.format(ChatColor.GREEN + "Số tiền: %s",
-                        String.format("%,.0f", paymentRecord.getAmount()) + "đ");
-                simpleForm.button(message);
-            }
-        });
+        for (PaymentRecord paymentRecord : paymentRecords) {
+            String message = String.format(ChatColor.DARK_GREEN + "Số tiền: %s",
+                    String.format("%,.0f", paymentRecord.getAmount()) + "đ");
+            simpleForm.button(message); // TODO: make form configurable
+        }
         return simpleForm.build();
     }
 
-    private static CompletableFuture<List<PaymentRecord>> fetchPaymentRecordsAsync(Player player) {
-        return CompletableFuture.supplyAsync(() -> {
+    private static List<PaymentRecord> fetchPaymentRecordsAsync(Player player) {
             SPPlayer spPlayer;
             spPlayer = SPPlugin.getInstance().getDatabaseService().getPlayerService().findByUuid(player.getUniqueId());
             Preconditions.checkNotNull(spPlayer, "Player not found");
             List<PaymentRecord> paymentRecords = SPPlugin.getInstance().getDatabaseService().getPaymentLogService().getPaymentsByPlayer(spPlayer);
             return paymentRecords;
-        });
     }
 }
+

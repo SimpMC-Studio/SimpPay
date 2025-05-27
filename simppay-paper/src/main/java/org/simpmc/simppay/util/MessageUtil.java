@@ -87,7 +87,7 @@ public class MessageUtil {
      * @param player the player
      * @return the tag resolver
      */
-    private static @NotNull TagResolver papiTag(final @NotNull Player player) {
+    private static TagResolver papiTag(final Player player) {
         return TagResolver.resolver("papi", (argumentQueue, context) -> {
             // Get the string placeholder that they want to use.
             final String papiPlaceholder = argumentQueue.popOr("papi tag requires an argument").value();

@@ -63,6 +63,7 @@ public class CardPayment {
         this.cardType = ((CardDetail) payment.getDetail()).getType();
         this.refID = payment.getDetail().getRefID();
         this.trueAmount = ((CardDetail) payment.getDetail()).getTrueAmount();
+        this.amount = payment.getDetail().getAmount();
         this.apiProvider = PaymentService.getCardAPI();
         this.timestamp = Instant.now().toEpochMilli();
     }

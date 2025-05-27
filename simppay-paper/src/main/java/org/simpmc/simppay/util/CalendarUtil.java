@@ -8,6 +8,8 @@ public class CalendarUtil {
         // Get the current date
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(timestamp);
+        calendar.setFirstDayOfWeek(Calendar.MONDAY);
+
 
         // Set the time to the first day of the week (Monday)
         calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
@@ -69,6 +71,7 @@ public class CalendarUtil {
     public static long getLastDayOfWeek(long timestamp) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(timestamp);
+        calendar.setFirstDayOfWeek(Calendar.MONDAY);
 
         // Set to the last day of the week (Sunday)
         calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
@@ -119,5 +122,17 @@ public class CalendarUtil {
         calendar.set(Calendar.MILLISECOND, 999);
 
         return calendar.getTimeInMillis();
+    }
+
+    public static String getFormattedTimestamp(long timestamp) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(timestamp);
+        return String.format("%02d/%02d/%04d %02d:%02d:%02d",
+                calendar.get(Calendar.DAY_OF_MONTH),
+                calendar.get(Calendar.MONTH) + 1, // Months are 0-based
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                calendar.get(Calendar.SECOND));
     }
 }

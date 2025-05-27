@@ -44,6 +44,8 @@ public class MessageConfig {
 
     public String invalidParam = "<color:#ff0000>>Serial hoặc mã thẻ nhập vào chưa chính xác!";
 
+    public String playerNotFound = "<color:#ff0000>Không tìm thấy người chơi nào với tên <white>{name}<color:#ff0000>!";
+
     // TODO: store sound directly or have a toSound method
     public Map<PaymentStatus, SoundConfig> soundEffect = Map.of(
             PaymentStatus.SUCCESS, new SoundConfig(Key.key(Key.MINECRAFT_NAMESPACE, "entity.player.levelup"), 1, 1), // /playsound minecraft:entity.player.levelup ambient @a ~ ~ ~ 1 1

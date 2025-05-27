@@ -15,7 +15,7 @@ import java.util.Map;
 @Folder("menus")
 public class ServerPaymentHistoryMenuConfig {
     @Comment("Title có hỗ trợ PlaceholderAPI")
-    public String title = "<gradient:#E34949:#D8DB5C><bold>SimpPay</bold><white> Lịch Sử Nạp <dark_gray>[<white>{page} / {maxPage}<dark_gray>]";
+    public String title = "<gradient:#E34949:#D8DB5C><bold>SimpPay</bold><white> Lịch Sử Nạp Server";
 
     public List<String> layout = Arrays.asList(
             "#########",
@@ -77,6 +77,8 @@ public class ServerPaymentHistoryMenuConfig {
             .amount(1)
             .name("<white>Thẻ:<color:#24d65d> {card_type} {amount}")
             .lores(List.of(
+                    "  <color:#83E349>○<white> Tên: <color:#54EDC4>{name}",
+                    " ",
                     "  <color:#83E349>○<white> Thời gian: <color:#54EDC4>{time}",
                     "  <color:#83E349>○<white> Số serial: <color:#54EDC4>{serial}",
                     "  <color:#83E349>○<white> Mã thẻ: <color:#54EDC4>{pin}",
@@ -90,6 +92,8 @@ public class ServerPaymentHistoryMenuConfig {
             .amount(1)
             .name("<white>Banking:<color:#24d65d> {amount}")
             .lores(List.of(
+                    "  <color:#83E349>○<white> Tên: <color:#54EDC4>{name}",
+                    " ",
                     "  <color:#83E349>○<white> Thời gian: <color:#54EDC4>{time}",
                     "  <color:#83E349>○<white> Cổng nạp: <color:#54EDC4>{api}",
                     "  <color:#83E349>○<white> Mã giao dịch: <color:#54EDC4>{transaction_id}"

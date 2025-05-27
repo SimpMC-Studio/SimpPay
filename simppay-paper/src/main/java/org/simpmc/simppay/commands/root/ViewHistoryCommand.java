@@ -1,6 +1,7 @@
 package org.simpmc.simppay.commands.root;
 
 import dev.jorel.commandapi.CommandAPICommand;
+import org.geysermc.cumulus.form.SimpleForm;
 import org.geysermc.floodgate.api.FloodgateApi;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.forms.ViewHistoryForm;
@@ -13,7 +14,13 @@ public class ViewHistoryCommand {
                 .withAliases("napthehistory", "xemgdnapthe")
                 .executesPlayer((player, args) -> {
                     if (FloodgateApi.getInstance().isFloodgateId(player.getUniqueId())) {
-                        FloodgateApi.getInstance().sendForm(player.getUniqueId(), ViewHistoryForm.getHistoryForm(player));
+                        SPPlugin plugin = SPPlugin.getInstance();
+                        plugin.getFoliaLib().getScheduler().runAsync(task -> {
+                            SimpleForm form = ViewHistoryForm.getHistoryForm(player);
+                            plugin.getFoliaLib().getScheduler().runNextTick(task2 -> {
+                                FloodgateApi.getInstance().sendForm(player.getUniqueId(), form);
+                            });
+                        });
                         return;
                     }
                     SPPlugin.getInstance().getViewFrame().open(PaymentHistoryView.class, player);

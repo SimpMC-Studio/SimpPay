@@ -35,12 +35,6 @@ public class CacheUpdaterListener implements Listener {
     public void onPaymentSuccess(PaymentSuccessEvent event) {
         SPPlugin plugin = SPPlugin.getInstance();
         plugin.getCacheDataService().addPlayerToQueue(event.getPlayerUUID());
-        plugin.getFoliaLib().getScheduler().runAsync(task2 -> plugin.getCacheDataService().updateServerDataCache()).thenAccept(result -> {
-            // Call event for server wide milestone
-            // Note: the event for player milestone is called in CacheDataService#updatePlayerTimedValues()
-            plugin.getFoliaLib().getScheduler().runLater(task -> {
-                plugin.getServer().getPluginManager().callEvent(new ServerMilestoneEvent());
-            }, 1);
-        });
+        plugin.getFoliaLib().getScheduler().runAsync(task2 -> plugin.getCacheDataService().updateServerDataCache());
     }
 }

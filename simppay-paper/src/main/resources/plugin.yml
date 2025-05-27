@@ -15,6 +15,7 @@ libraries:
 depend:
   - PlaceholderAPI
   - PlayerPoints
+softdepend:
   - floodgate
 permission:
   simppay.napthe:

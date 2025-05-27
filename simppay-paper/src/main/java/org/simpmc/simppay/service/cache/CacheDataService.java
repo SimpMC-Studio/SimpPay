@@ -1,8 +1,12 @@
 package org.simpmc.simppay.service.cache;
 
 import lombok.Getter;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.database.entities.SPPlayer;
+import org.simpmc.simppay.event.PaymentSuccessEvent;
 import org.simpmc.simppay.event.PlayerMilestoneEvent;
 
 import java.util.UUID;
@@ -31,7 +35,7 @@ public class CacheDataService {
     private final AtomicLong bankTotalValue = new AtomicLong(0);
 
     private CacheDataService() {
-        SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> processQueue());
+        SPPlugin.getInstance().getFoliaLib().getScheduler().runTimerAsync(task -> processQueue(), 1,20L);
         // Player cache are updated once when player first join
         // and then on PaymentSuccessEvent given there is a player
 
@@ -48,6 +52,17 @@ public class CacheDataService {
 
     public void clearAllCache() {
         playerTotalValue.clear();
+        playerDailyTotalValue.clear();
+        playerWeeklyTotalValue.clear();
+        playerMonthlyTotalValue.clear();
+        playerYearlyTotalValue.clear();
+        serverTotalValue.set(0);
+        serverDailyTotalValue.set(0);
+        serverWeeklyTotalValue.set(0);
+        serverMonthlyTotalValue.set(0);
+        serverYearlyTotalValue.set(0);
+        cardTotalValue.set(0);
+        bankTotalValue.set(0);
     }
 
     public void clearPlayerCache(UUID playerUUID) {
@@ -77,6 +92,7 @@ public class CacheDataService {
 
             double totalValue = plugin.getDatabaseService().getPaymentLogService().getPlayerTotalAmount(player);
             if (totalValue != 0) {
+                playerTotalValue.putIfAbsent(playerUUID, new AtomicLong((long) totalValue));
                 updatePlayerTimedValues(playerUUID);
             }
         }
@@ -89,6 +105,8 @@ public class CacheDataService {
         serverWeeklyTotalValue.set(plugin.getDatabaseService().getPaymentLogService().getEntireServerWeeklyAmount());
         serverMonthlyTotalValue.set(plugin.getDatabaseService().getPaymentLogService().getEntireServerMonthlyAmount());
         serverYearlyTotalValue.set(plugin.getDatabaseService().getPaymentLogService().getEntireServerYearlyAmount());
+        cardTotalValue.set(plugin.getDatabaseService().getPaymentLogService().getEntireServerCardAmount());
+        bankTotalValue.set(plugin.getDatabaseService().getPaymentLogService().getEntireServerBankAmount());
     }
 
     private void updatePlayerTimedValues(UUID playerUUID) {
@@ -124,10 +142,6 @@ public class CacheDataService {
             v.set(plugin.getDatabaseService().getPaymentLogService().getPlayerYearlyAmount(player));
             return v;
         });
-        // Call event for player milestone
-        plugin.getFoliaLib().getScheduler().runLater(task -> {
-            plugin.getServer().getPluginManager().callEvent(new PlayerMilestoneEvent(playerUUID));
-        }, 1);
 
     }
 }

@@ -34,9 +34,9 @@ public class DisplayItem implements Cloneable {
         return this;
     }
 
-    public DisplayItem replaceStringInName(String str, Function<String, String> replacement) {
+    public DisplayItem replaceStringInName(String placeholder, Function<String, String> replacement) {
         if (name != null) {
-            name = replacement.apply(name.replace(str, ""));
+            name = name.replace(placeholder, replacement.apply(placeholder));
         }
         return this;
     }

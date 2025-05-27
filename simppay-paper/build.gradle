@@ -28,9 +28,7 @@ dependencies {
     implementation('me.devnatan:inventory-framework-platform-bukkit:3.3.8')
     implementation 'me.devnatan:inventory-framework-anvil-input:3.3.8'
     implementation('me.devnatan:inventory-framework-platform-paper:3.3.8')
-    implementation("com.github.retrooper:packetevents-spigot:2.8.0") {
-        exclude group: 'net.kyori'
-    }
+    implementation("com.github.retrooper:packetevents-spigot:2.8.0")
 }
 
 shadowJar {
@@ -38,8 +36,11 @@ shadowJar {
     archiveBaseName.set("SimpPay-Paper")
     archiveVersion.set(version)
     archiveClassifier.set('')
-    destinationDirectory = file("D:\\folia\\plugins")
-
+    if (System.getenv("OUTPUT_DIR") != null) {
+        destinationDirectory.set(file(System.getenv("OUTPUT_DIR")))
+    } else {
+        destinationDirectory.set(file("$projectDir/../build/libs"))
+    }
     relocate("de.exlll.configlib", "me.typical.lib.configlib")
     relocate("dev.jorel.commandapi", "me.typical.lib.commandapi")
     relocate("com.tcoded.folialib", "me.typical.lib.folialib")

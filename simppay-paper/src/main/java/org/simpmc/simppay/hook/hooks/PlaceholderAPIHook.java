@@ -39,22 +39,9 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String identifier) {
-        if (player == null) {
-            return null;
-        }
 
         CacheDataService cacheDataService = plugin.getCacheDataService();
-        UUID uuid = player.getUniqueId();
 
-        if (!cacheDataService.getPlayerTotalValue().containsKey(uuid)) {
-            cacheDataService.addPlayerToQueue(uuid);
-            return "Đang load...";
-        }
-
-        // %simppay_total%
-        if (identifier.equalsIgnoreCase("total")) {
-            return cacheDataService.getPlayerTotalValue().get(uuid).toString();
-        }
         // get server_total
         // %simppay_server_total%
         if (identifier.equalsIgnoreCase("server_total")) {
@@ -73,6 +60,21 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             return String.format("%,d", cacheDataService.getCardTotalValue().get());
         }
 
+
+        if (player == null) {
+            return null;
+        }
+
+        UUID uuid = player.getUniqueId();
+        if (!cacheDataService.getPlayerTotalValue().containsKey(uuid)) {
+            cacheDataService.addPlayerToQueue(uuid);
+            return "Đang load...";
+        }
+
+        // %simppay_total%
+        if (identifier.equalsIgnoreCase("total")) {
+            return cacheDataService.getPlayerTotalValue().get(uuid).toString();
+        }
 
         return null;
     }
