@@ -75,6 +75,10 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
         if (identifier.equalsIgnoreCase("total")) {
             return cacheDataService.getPlayerTotalValue().get(uuid).toString();
         }
+        // %simppay_total_formatted%
+        if (identifier.equalsIgnoreCase("total_formatted")) {
+            return String.format("%,d", cacheDataService.getPlayerTotalValue().get(uuid).get());
+        }
 
         return null;
     }

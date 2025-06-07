@@ -44,9 +44,9 @@ public class CoinsConfig {
             CardPrice._1000K, List.of("tell %player_name% Bạn vừa nạp 1000k")
     );
     @Comment({"Công thức tính xu được nhận khi nạp chuyển khoản",
-            "- Số xu nhận được = Số xu tiêu chuẩn + Số xu được nhận thêm + (Số point tiêu chuẩn × Khuyến mãi)",
+            "- Số xu nhận được = Số xu tiêu chuẩn + Số xu được nhận thêm + (Số tiền nạp chuyển khoản / 1000) × Khuyến mãi)",
             "Trong đó:",
-            "- Số xu tiêu chuẩn = (Số tiền nạp chuyển khoản / 1000)",
+            "- Số xu tiêu chuẩn = (Số tiền nạp chuyển khoản / 1000) x Tỷ lệ tiêu chuẩn cho chuyển khoản",
             "- Số xu được nhận thêm = (Số tiền nạp chuyển khoản / 1000) × Tỷ lệ nhận thêm cho chuyển khoản",
             " ",
             "Lượng xu tiêu chuẩn cộng vào tương ứng với mỗi 1000đ nạp chuyển khoản", "Mặc định: 1000đ = 1 xu"})

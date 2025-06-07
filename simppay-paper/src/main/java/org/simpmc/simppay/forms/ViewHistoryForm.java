@@ -9,7 +9,6 @@ import org.simpmc.simppay.database.dto.PaymentRecord;
 import org.simpmc.simppay.database.entities.SPPlayer;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 
 public class ViewHistoryForm {
@@ -25,11 +24,11 @@ public class ViewHistoryForm {
     }
 
     private static List<PaymentRecord> fetchPaymentRecordsAsync(Player player) {
-            SPPlayer spPlayer;
-            spPlayer = SPPlugin.getInstance().getDatabaseService().getPlayerService().findByUuid(player.getUniqueId());
-            Preconditions.checkNotNull(spPlayer, "Player not found");
-            List<PaymentRecord> paymentRecords = SPPlugin.getInstance().getDatabaseService().getPaymentLogService().getPaymentsByPlayer(spPlayer);
-            return paymentRecords;
+        SPPlayer spPlayer;
+        spPlayer = SPPlugin.getInstance().getDatabaseService().getPlayerService().findByUuid(player.getUniqueId());
+        Preconditions.checkNotNull(spPlayer, "Player not found");
+        List<PaymentRecord> paymentRecords = SPPlugin.getInstance().getDatabaseService().getPaymentLogService().getPaymentsByPlayer(spPlayer);
+        return paymentRecords;
     }
 }
 

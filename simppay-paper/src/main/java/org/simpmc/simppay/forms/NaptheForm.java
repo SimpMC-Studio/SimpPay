@@ -25,7 +25,7 @@ public class NaptheForm {
         return CustomForm.builder()
                 .title("SimpPay - Nạp thẻ")
                 .dropdown("Loại Thẻ", cardTypes)
-                .dropdown("Mệnh Giá", CardPrice.getAllCardPrices())
+                .dropdown("Mệnh Giá", CardPrice.getAllCardPricesFormatted())
                 .label(ChatColor.RED + "Lưu ý: Nhập sai mệnh giá sẽ nhận xu tương ứng giá trị thật của thẻ")
                 .input("Số Serial", "Nhập số serial của thẻ")
                 .input("Mã Thẻ", "Nhập mã PIN của thẻ")

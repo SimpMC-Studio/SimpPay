@@ -83,14 +83,15 @@ public class SuccessHandlingListener implements Listener {
         }
         if (event.getPaymentType() == PaymentType.BANKING) {
             BankingDetail bankDetail = (BankingDetail) event.getPaymentDetail();
-            //  "- Số xu nhận được = Số xu tiêu chuẩn + Số xu được nhận thêm + (Số point tiêu chuẩn × Khuyến mãi)",
+            //  "- Số xu nhận được = Số xu tiêu chuẩn + Số xu được nhận thêm + (Số tiền nạp chuyển khoản / 1000) × Khuyến mãi)",
             //    "Trong đó:",
-            //     "- Số xu tiêu chuẩn = (Số tiền nạp chuyển khoản / 1000)",
+            //     "- Số xu tiêu chuẩn = (Số tiền nạp chuyển khoản / 1000) x Tỷ lệ tiêu chuẩn cho chuyển khoản",
             //     "- Số xu được nhận thêm = (Số tiền nạp chuyển khoản / 1000) × Tỷ lệ nhận thêm cho chuyển khoản",
-            long baseCoin = (long) (bankDetail.getAmount() / 1000);
-            long bonusCoin = (long) (baseCoin * coinsConfig.extraBankRate) + (long) (baseCoin * coinsConfig.getPromoRate());
+            // Xu tiêu chuẩn sẽ được làm gốc để tính cho khuyến mãi và xu nhận thêm
+            long baseCoin = (long) ((bankDetail.getAmount() / 1000) * coinsConfig.baseBankRate);
+            long bonusCoin = (long) ((bankDetail.getAmount() / 1000) * coinsConfig.extraBankRate) + (long) ((bankDetail.getAmount() / 1000) * coinsConfig.getPromoRate());
             givenCoins = baseCoin + bonusCoin;
-            if (baseCoin == 0) {
+            if (baseCoin == 0 || baseCoin < 0) {
                 return;
             }
         }

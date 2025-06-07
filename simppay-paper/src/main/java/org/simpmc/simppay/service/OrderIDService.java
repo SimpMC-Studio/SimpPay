@@ -1,6 +1,5 @@
 package org.simpmc.simppay.service;
 
-import org.bukkit.plugin.java.JavaPlugin;
 import org.simpmc.simppay.SPPlugin;
 
 import java.io.*;

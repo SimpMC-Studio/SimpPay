@@ -25,15 +25,11 @@ import org.simpmc.simppay.menu.PaymentHistoryView;
 import org.simpmc.simppay.menu.ServerPaymentHistoryView;
 import org.simpmc.simppay.menu.card.CardListView;
 import org.simpmc.simppay.menu.card.CardPriceView;
-import org.simpmc.simppay.menu.card.anvil.CardPINView;
-import org.simpmc.simppay.menu.card.anvil.CardSerialView;
 import org.simpmc.simppay.service.DatabaseService;
 import org.simpmc.simppay.service.MilestoneService;
 import org.simpmc.simppay.service.OrderIDService;
 import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.service.cache.CacheDataService;
-import org.simpmc.simppay.util.FloodgateUtil;
-import org.simpmc.simppay.util.MessageUtil;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -63,6 +59,8 @@ public final class SPPlugin extends JavaPlugin {
     private boolean dev = false;
     @Getter
     private ViewFrame viewFrame;
+    @Getter
+    private boolean floodgateEnabled;
 
     @Override
     public void onLoad() {
@@ -79,7 +77,7 @@ public final class SPPlugin extends JavaPlugin {
         PacketEvents.getAPI().init();
         registerMetrics();
         if (getServer().getPluginManager().getPlugin("floodgate") != null) {
-            FloodgateUtil.enableFloodgate = true;
+            floodgateEnabled = true;
             getLogger().info("Enabled floodgate support");
         }
         // Thanks CHATGPT, qua met r
@@ -144,9 +142,7 @@ public final class SPPlugin extends JavaPlugin {
 
     private void registerInventoryFramework() {
         viewFrame = ViewFrame.create(this)
-                .install(AnvilInputFeature.AnvilInput)
-                .with(new CardPINView(),
-                        new CardSerialView(),
+                .with(
                         new CardListView(),
                         new CardPriceView(),
                         new PaymentHistoryView(),

@@ -29,6 +29,7 @@ dependencies {
     implementation 'me.devnatan:inventory-framework-anvil-input:3.3.8'
     implementation('me.devnatan:inventory-framework-platform-paper:3.3.8')
     implementation("com.github.retrooper:packetevents-spigot:2.8.0")
+    implementation('net.wesjd:anvilgui:1.10.5-SNAPSHOT')
 }
 
 shadowJar {
@@ -48,6 +49,7 @@ shadowJar {
     relocate("org.json.json", "me.typical.lib.json")
     relocate("io.github.retrooper.packetevents", "me.typical.lib.io.packetevents")
     relocate("com.github.retrooper.packetevents", "me.typical.lib.com.packetevents")
+    relocate("net.wesjd.anvilgui", "me.typical.lib.anvilgui")
     relocate("kotlin", "me.typical.lib.kotlin")
 }
 tasks.register('sendRconCommand') {

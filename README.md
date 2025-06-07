@@ -20,34 +20,38 @@ Hướng dẫn sử dụng
 
 **Cài đặt plugin:**
 
-- Plugin cần có [floodgate](https://geysermc.org/download?project=floodgate), [PlayerPoints](https://www.spigotmc.org/resources/playerpoints.80745/) và [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) để hoạt động
+- Plugin cần
+  có [floodgate](https://geysermc.org/download?project=floodgate), [PlayerPoints](https://www.spigotmc.org/resources/playerpoints.80745/)
+  và [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) để hoạt động
 - Tải plugin [tại đây](https://discord.gg/cQ67TzhsQF), và để vào thư mục `plugins`
 
 **Danh sách lệnh:**
 
-| Lệnh                        | Chức năng                               | Permission                 |
-|-----------------------------|-----------------------------------------|----------------------------|
-| /napthe                     | Mở menu nạp thẻ                         | simppay.napthe             |
-| /simppayadmin lichsu        | Xem lịch sử nạp toàn server             | simppay.admin.viewhistory  |
-| /simppayadmin lichsu <name> | Xem lịch sử nạp của người chơi chỉ định | simppay.admin.viewhistory  |
-| /lichsunapthe               | Xem lịch sử nạp                         | simppay.lichsunapthe       |
-| /bank <số tiền>             | Nạp ngân hàng qua mã QR                 | simppay.admin              |
+| Lệnh                        | Chức năng                               | Permission                |
+|-----------------------------|-----------------------------------------|---------------------------|
+| /napthe                     | Mở menu nạp thẻ                         | simppay.napthe            |
+| /simppayadmin lichsu        | Xem lịch sử nạp toàn server             | simppay.admin.viewhistory |
+| /simppayadmin lichsu <name> | Xem lịch sử nạp của người chơi chỉ định | simppay.admin.viewhistory |
+| /lichsunapthe               | Xem lịch sử nạp                         | simppay.lichsunapthe      |
+| /bank <số tiền>             | Nạp ngân hàng qua mã QR                 | simppay.banking           |
 
 **Placeholder:**
 
-Placeholder có thể sử dụng để hiển thị top nạp bằng cách sử dụng [ajLeaderboards](https://www.spigotmc.org/resources/ajleaderboards.85548/)
+Placeholder có thể sử dụng để hiển thị top nạp bằng cách sử
+dụng [ajLeaderboards](https://www.spigotmc.org/resources/ajleaderboards.85548/)
 
-| Placeholder                      | Chức năng                                      | Ghi chú |
-|----------------------------------|------------------------------------------------|---------|
-| %simppay_total%                  | Trả về tổng nạp của người chơi đó              |         |
-| %simppay_server_total%           | Trả về tổng nạp toàn server                    |         |
-| %simppay_server_total_formatted% | Trả về số tiền nạp toàn server dạng xxx.xxxđ   |         |
-| %simppay_bank_total_formatted%   | Trả về số tiền nạp ngân hàng dạng xxx.xxxđ     |         |
-| %simppay_card_total_formatted%   | Trả về số tiền nạp thẻ dạng xxx.xxxđ           |         |
+| Placeholder                      | Chức năng                                    | Ghi chú |
+|----------------------------------|----------------------------------------------|---------|
+| %simppay_total%                  | Trả về tổng nạp của người chơi đó            |         |
+| %simppay_server_total%           | Trả về tổng nạp toàn server                  |         |
+| %simppay_server_total_formatted% | Trả về số tiền nạp toàn server dạng xxx.xxxđ |         |
+| %simppay_bank_total_formatted%   | Trả về số tiền nạp ngân hàng dạng xxx.xxxđ   |         |
+| %simppay_card_total_formatted%   | Trả về số tiền nạp thẻ dạng xxx.xxxđ         |         |
 
 **Config plugin:**
 
 Cấu trúc thư mục `./plugins/SimpPay` như sau
+
 ```
 SimpPay
 │   coins-config.yml 

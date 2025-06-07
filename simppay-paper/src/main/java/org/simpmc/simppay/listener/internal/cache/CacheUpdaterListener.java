@@ -6,7 +6,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.event.PaymentSuccessEvent;
-import org.simpmc.simppay.event.ServerMilestoneEvent;
 
 public class CacheUpdaterListener implements Listener {
     public CacheUpdaterListener(SPPlugin plugin) {

@@ -1,13 +1,8 @@
 package org.simpmc.simppay.service.cache;
 
 import lombok.Getter;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.database.entities.SPPlayer;
-import org.simpmc.simppay.event.PaymentSuccessEvent;
-import org.simpmc.simppay.event.PlayerMilestoneEvent;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,7 +30,7 @@ public class CacheDataService {
     private final AtomicLong bankTotalValue = new AtomicLong(0);
 
     private CacheDataService() {
-        SPPlugin.getInstance().getFoliaLib().getScheduler().runTimerAsync(task -> processQueue(), 1,20L);
+        SPPlugin.getInstance().getFoliaLib().getScheduler().runTimerAsync(task -> processQueue(), 1, 20L);
         // Player cache are updated once when player first join
         // and then on PaymentSuccessEvent given there is a player
 

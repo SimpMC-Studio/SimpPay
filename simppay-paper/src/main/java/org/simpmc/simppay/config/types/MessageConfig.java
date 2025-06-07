@@ -34,7 +34,7 @@ public class MessageConfig {
 
     public String pendingBank = "<color:#00ff00>Hãy quét mã QR ở bên tay của bạn để thanh toán!";
 
-    public String promptPaymentLink = "<color:#00ff00>Bạn có thể thanh toán qua đường dẫn sau nếu QR trên tay bị lỗi: <white><link>";
+    public String promptPaymentLink = "<color:#00ff00>Bạn có thể thanh toán qua đường dẫn sau nếu QR trên tay bị lỗi: <dark_green><click:open_url:'<link>'>Click vào đây</click>";
 
     public String mustDivisibleBy1000 = "<color:#ff0000>Số tiền phải chia hết cho <white>1000<color:#ff0000>!";
 

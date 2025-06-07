@@ -10,7 +10,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.MainConfig;
@@ -22,6 +21,7 @@ public class MessageUtil {
     public static void sendMessage(Player player, String message) {
         taskMessage(message, player);
     }
+
     public static void sendMessage(CommandSender sender, String message) {
         if (sender instanceof Player) {
             taskMessage(message, (Player) sender);

@@ -22,7 +22,6 @@ import org.simpmc.simppay.service.database.PlayerService;
 import org.simpmc.simppay.util.MessageUtil;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 public class MilestoneListener implements Listener {
     public MilestoneListener(SPPlugin plugin) {
