@@ -37,28 +37,45 @@ shadowJar {
     archiveBaseName.set("SimpPay-Paper")
     archiveVersion.set(version)
     archiveClassifier.set('')
+    
+    // Improved output directory handling
     if (System.getenv("OUTPUT_DIR") != null) {
         destinationDirectory.set(file(System.getenv("OUTPUT_DIR")))
     } else {
         destinationDirectory.set(file("$projectDir/../build/libs"))
     }
-    relocate("de.exlll.configlib", "me.typical.lib.configlib")
-    relocate("dev.jorel.commandapi", "me.typical.lib.commandapi")
-    relocate("com.tcoded.folialib", "me.typical.lib.folialib")
-    relocate("me.devnatan.inventoryframework", "me.typical.lib.inventoryframework")
-    relocate("org.json.json", "me.typical.lib.json")
-    relocate("io.github.retrooper.packetevents", "me.typical.lib.io.packetevents")
-    relocate("com.github.retrooper.packetevents", "me.typical.lib.com.packetevents")
-    relocate("net.wesjd.anvilgui", "me.typical.lib.anvilgui")
-    relocate("kotlin", "me.typical.lib.kotlin")
+    
+    // Optimized relocations with consistent naming
+    def relocPrefix = "org.simpmc.simppay.lib"
+    relocate("de.exlll.configlib", "${relocPrefix}.configlib")
+    relocate("dev.jorel.commandapi", "${relocPrefix}.commandapi")
+    relocate("com.tcoded.folialib", "${relocPrefix}.folialib")
+    relocate("me.devnatan.inventoryframework", "${relocPrefix}.inventoryframework")
+    relocate("org.json.json", "${relocPrefix}.json")
+    relocate("io.github.retrooper.packetevents", "${relocPrefix}.packetevents.io")
+    relocate("com.github.retrooper.packetevents", "${relocPrefix}.packetevents.com")
+    relocate("net.wesjd.anvilgui", "${relocPrefix}.anvilgui")
+    relocate("kotlin", "${relocPrefix}.kotlin")
+    
+    // Minimize jar size
+    minimize()
+    
+    // Exclude unnecessary files
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+    exclude 'META-INF/DEPENDENCIES'
+    exclude 'META-INF/LICENSE*'
+    exclude 'META-INF/NOTICE*'
 }
 tasks.register('sendRconCommand') {
     description = 'Sends "res" command to the Minecraft server via RCON'
     doLast {
-        def host = 'localhost'          // your server IP or hostname
-        def port = 25575                // your RCON port
-        def password = '123123123' // your RCON password
-        def command = 'res' // the command you want to send
+        def host = project.findProperty('rcon.host') ?: 'localhost'
+        def port = Integer.parseInt(project.findProperty('rcon.port') ?: '25575')
+        def password = project.findProperty('rcon.password') ?: System.getenv('RCON_PASSWORD') ?: '123123123'
+        def command = project.findProperty('rcon.command') ?: 'res'
+        
         // Send the command and capture the response
         Rcon rcon = null
         try {
@@ -80,7 +97,7 @@ tasks.register('sendRconCommand') {
                 }
             }
         }
-        println "⏱ Waiting 5 second..."
+        println "⏱ Waiting 5 seconds..."
         Thread.sleep(5000)
     }
 }

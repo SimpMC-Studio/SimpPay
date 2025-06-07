@@ -9,6 +9,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.api.DatabaseSettings;
+import org.simpmc.simppay.config.types.DatabaseConfig;
 import org.simpmc.simppay.database.entities.*;
 
 import java.sql.SQLException;
@@ -59,18 +60,24 @@ public class Database {
             driverClassName = "org.h2.Driver";
         } else {
             throw new RuntimeException("Unsupported database type: " + dbType);
-        }
-
-        config.setJdbcUrl(jdbcUrl);
+        }        config.setJdbcUrl(jdbcUrl);
         config.setDriverClassName(driverClassName);
         config.setUsername(username);
         config.setPassword(password);
-        // General HikariCP settings
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(2);
-        config.setConnectionTimeout(30000); // 30 seconds
-        config.setIdleTimeout(600000);        // 10 minutes
-        config.setMaxLifetime(1800000);       // 30 minutes
+        
+        // Apply pool configuration from config
+        DatabaseConfig.PoolConfig poolConfig = ((DatabaseConfig) db).getPool();
+        config.setMaximumPoolSize(poolConfig.getMaximumPoolSize());
+        config.setMinimumIdle(poolConfig.getMinimumIdle());
+        config.setConnectionTimeout(poolConfig.getConnectionTimeout());
+        config.setIdleTimeout(poolConfig.getIdleTimeout());
+        config.setMaxLifetime(poolConfig.getMaxLifetime());
+        config.setLeakDetectionThreshold(poolConfig.getLeakDetectionThreshold());
+        
+        // Performance optimizations
+        config.addDataSourceProperty("useServerPrepStmts", "true");
+        config.addDataSourceProperty("rewriteBatchedStatements", "true");
+        config.addDataSourceProperty("maintainTimeStats", "false");
 
         dataSource = new HikariDataSource(config);
         connectionSource = new DataSourceConnectionSource(dataSource, jdbcUrl);

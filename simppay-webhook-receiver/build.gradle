@@ -5,21 +5,16 @@ buildscript {
 }
 
 plugins {
-    id "application"
+    id 'java'
+    id 'application'
     id "io.jooby.run" version "${joobyVersion}"
-    id "io.spring.dependency-management" version "1.1.0"
-    id "com.google.osdetector" version "1.7.3"
-    id 'com.gradleup.shadow' version '8.3.3'
+    id "com.gradleup.shadow" version "8.3.5"
+    id "io.spring.dependency-management" version "1.1.7"
 }
 
-group "org.simpmc.napthe"
-version "1.0.0"
-mainClassName = "org.simpmc.napthe.App"
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
+group = getRootProject().group
+version = getRootProject().version
+mainClassName = "org.simpmc.simppay.http.JoobyServer"
 
 dependencyManagement {
     imports {
@@ -28,18 +23,26 @@ dependencyManagement {
 }
 
 dependencies {
-
-    compileOnly 'com.j256.ormlite:ormlite-jdbc:6.1'
-    implementation 'io.jooby:jooby-hikari:3.6.1'
-    compileOnly 'com.zaxxer:HikariCP:5.0.1'
-
-    compileOnly 'org.projectlombok:lombok:1.18.36'
-    annotationProcessor 'org.projectlombok:lombok:1.18.36'
-    implementation 'io.jooby:jooby-redis:3.6.1'
-    annotationProcessor "io.jooby:jooby-apt"
+    // Include the common module
+    implementation project(':simppay-api')
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    
+    // Database
+    implementation 'com.j256.ormlite:ormlite-jdbc:6.1'
+    implementation 'com.zaxxer:HikariCP:6.3.0'
+    implementation 'com.h2database:h2:2.3.232'
+    
+    // Jooby framework
     implementation "io.jooby:jooby-netty"
+    implementation "io.jooby:jooby-hikari"
+    implementation "io.jooby:jooby-redis"
     implementation "io.jooby:jooby-logback"
+    annotationProcessor "io.jooby:jooby-apt"
 
+    // Testing
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.11.4"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:5.11.4"
     testImplementation "io.jooby:jooby-test"

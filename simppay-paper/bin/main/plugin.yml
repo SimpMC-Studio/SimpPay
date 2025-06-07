@@ -1,0 +1,28 @@
+name: SimpPay
+version: '$version'
+main: org.simpmc.simppay.SPPlugin
+api-version: '1.13'
+author: 'typical.smc'
+description: 'Payment solution for Vietnamese Minecraft Servers'
+website: 'https://github.com/SimpMC-Studio/SimpPay'
+folia-supported: true
+libraries:
+  - com.h2database:h2:2.3.232
+  - com.zaxxer:HikariCP:6.3.0
+  - com.j256.ormlite:ormlite-jdbc:6.1
+  - commons-codec:commons-codec:1.18.0
+#  - redis.clients:jedis:4.3.1
+depend:
+  - PlaceholderAPI
+  - PlayerPoints
+softdepend:
+  - floodgate
+permission:
+  simppay.napthe:
+    default: true
+    description: Allow player to use /simppay command
+  simppay.banking:
+    default: op
+  simppay.napthenhanh:
+    default: true
+    description: Allow player to use /napthenhanh command
