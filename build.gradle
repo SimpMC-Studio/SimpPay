@@ -60,7 +60,7 @@ subprojects {
 }
 
 // Set the Java version for all subprojects
-def targetJavaVersion = 21
+def targetJavaVersion = 8
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion

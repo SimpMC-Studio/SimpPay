@@ -6,7 +6,6 @@ This document outlines the performance optimizations applied to the SimpPay proj
 ## Build System Improvements
 
 ### 1. Java Version Upgrade
-- **Changed**: Java 8 → Java 21
 - **Benefit**: Modern JVM performance improvements, better GC, new language features
 - **Impact**: ~15-30% performance improvement in throughput
 
