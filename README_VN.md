@@ -55,6 +55,7 @@ hoặc [topper](https://www.spigotmc.org/resources/topper.101325/)
 | %simppay_server_total_formatted% | Trả về số tiền nạp toàn server dạng xxx.xxxđ       |         |
 | %simppay_bank_total_formatted%   | Trả về số tiền nạp ngân hàng dạng xxx.xxxđ         |         |
 | %simppay_card_total_formatted%   | Trả về số tiền nạp thẻ dạng xxx.xxxđ               |         |
+| %simppay_end_promo%   | Trả về thời gian kết thúc khuyến mãi dạng dd/MM/yyyy HH:mm     |       |
 
 **Config plugin:**
 
