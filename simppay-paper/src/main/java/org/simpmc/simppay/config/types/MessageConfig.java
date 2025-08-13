@@ -46,6 +46,8 @@ public class MessageConfig {
 
     public String playerNotFound = "<color:#ff0000>Không tìm thấy người chơi nào với tên <white>{name}<color:#ff0000>!";
 
+    public String noPromo = "<color:#ff0000>Không Có Khuyến Mại!";
+
     // TODO: store sound directly or have a toSound method
     public Map<PaymentStatus, SoundConfig> soundEffect = Map.of(
             PaymentStatus.SUCCESS, new SoundConfig(Key.key(Key.MINECRAFT_NAMESPACE, "entity.player.levelup"), 1, 1), // /playsound minecraft:entity.player.levelup ambient @a ~ ~ ~ 1 1

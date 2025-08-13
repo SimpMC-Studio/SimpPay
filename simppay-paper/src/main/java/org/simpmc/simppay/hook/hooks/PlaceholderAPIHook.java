@@ -4,8 +4,12 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.simpmc.simppay.SPPlugin;
+import org.simpmc.simppay.config.ConfigManager;
+import org.simpmc.simppay.config.types.CoinsConfig;
+import org.simpmc.simppay.config.types.MessageConfig;
 import org.simpmc.simppay.service.cache.CacheDataService;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class PlaceholderAPIHook extends PlaceholderExpansion {
@@ -60,6 +64,24 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             return String.format("%,d", cacheDataService.getCardTotalValue().get());
         }
 
+        // %simppay_end_promo%
+        if (identifier.equalsIgnoreCase("end_promo")) {
+            CoinsConfig coinsConfig = ConfigManager.getInstance().getConfig(CoinsConfig.class);
+            MessageConfig messageConfig = ConfigManager.getInstance().getConfig(MessageConfig.class);
+            
+            // check promo time
+            try {
+                LocalDateTime promoEndTime = LocalDateTime.parse(coinsConfig.promoEndTimeString, coinsConfig.formatter);
+                if (promoEndTime.isBefore(LocalDateTime.now())) {
+                    return messageConfig.noPromo;
+                } else {
+                    return coinsConfig.promoEndTimeString;
+                }
+            } catch (Exception e) {
+                // Parse lỗi thời gian -> coi như không có khuyến mãi
+                return messageConfig.noPromo;
+            }
+        }
 
         if (player == null) {
             return null;

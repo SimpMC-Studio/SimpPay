@@ -54,6 +54,7 @@ or [topper](https://www.spigotmc.org/resources/topper.101325/)
 | %simppay_server_total_formatted% | Returns server recharge amount in xxx.xxxđ format   |       |
 | %simppay_bank_total_formatted%   | Returns bank recharge amount in xxx.xxxđ format     |       |
 | %simppay_card_total_formatted%   | Returns card recharge amount in xxx.xxxđ format     |       |
+| %simppay_end_promo%   | Returns End Promo dd/MM/yyyy HH:mm format     |       |
 
 **Plugin Configuration:**
 
