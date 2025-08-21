@@ -25,7 +25,8 @@ Usage Guide
 
 - The plugin requires
   [PlayerPoints](https://www.spigotmc.org/resources/playerpoints.80745/)
-  and [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) to function
+  and [PlaceholderAPI
+](https://www.spigotmc.org/resources/placeholderapi.6245/) to function
 - Download the plugin [here](https://github.com/SimpMC-Studio/SimpPay/releases/), and place it in the `plugins` folder
 - You need to install floodgate to use the card recharge interface for Bedrock players, download
   it [here](https://geysermc.org/download?project=floodgate)
@@ -54,7 +55,7 @@ or [topper](https://www.spigotmc.org/resources/topper.101325/)
 | %simppay_server_total_formatted% | Returns server recharge amount in xxx.xxxđ format   |       |
 | %simppay_bank_total_formatted%   | Returns bank recharge amount in xxx.xxxđ format     |       |
 | %simppay_card_total_formatted%   | Returns card recharge amount in xxx.xxxđ format     |       |
-| %simppay_end_promo%   | Returns End Promo dd/MM/yyyy HH:mm format     |       |
+| %simppay_end_promo%              | Returns End Promo dd/MM/yyyy HH:mm format           |       |
 
 **Plugin Configuration:**
 
