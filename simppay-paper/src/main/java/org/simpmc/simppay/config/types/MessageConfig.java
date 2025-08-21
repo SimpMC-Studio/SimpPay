@@ -46,7 +46,7 @@ public class MessageConfig {
 
     public String playerNotFound = "<color:#ff0000>Không tìm thấy người chơi nào với tên <white>{name}<color:#ff0000>!";
 
-    public String noPromo = "<color:#ff0000>Không có khuyến mại mặc định!";
+    public String noPromo = "<color:#ff0000>Không có khuyến mại theo mặc định!";
 
     // TODO: store sound directly or have a toSound method
     public Map<PaymentStatus, SoundConfig> soundEffect = Map.of(
