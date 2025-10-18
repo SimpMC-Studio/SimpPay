@@ -27,6 +27,7 @@ import org.simpmc.simppay.listener.internal.player.BankPromptListener;
 import org.simpmc.simppay.listener.internal.player.NaplandauListener;
 import org.simpmc.simppay.listener.internal.player.SuccessHandlingListener;
 import org.simpmc.simppay.listener.internal.player.database.SuccessDatabaseHandlingListener;
+import org.simpmc.simppay.migration.MigrationService;
 
 import java.io.File;
 import java.sql.SQLException;

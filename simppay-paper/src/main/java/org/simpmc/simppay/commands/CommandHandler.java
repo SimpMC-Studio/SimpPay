@@ -9,6 +9,7 @@ import org.simpmc.simppay.commands.root.NaptheCommand;
 import org.simpmc.simppay.commands.root.NaptheNhanhCommand;
 import org.simpmc.simppay.commands.root.ViewHistoryCommand;
 import org.simpmc.simppay.commands.root.admin.ManualChargeCommand;
+import org.simpmc.simppay.commands.root.admin.MigrationCommand;
 import org.simpmc.simppay.commands.root.admin.SimpPayAdminCommand;
 
 public class CommandHandler {
@@ -28,6 +29,7 @@ public class CommandHandler {
         CommandAPI.onEnable();
         new ManualChargeCommand();
         new SimpPayAdminCommand();
+        new MigrationCommand();
         new BankingCommand();
         new NaptheNhanhCommand();
         new NaptheCommand();
