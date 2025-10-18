@@ -90,13 +90,12 @@ public class MilestoneRewardExecutor {
 
                 int commandIndex = 0;
                 for (String command : milestoneConfig.getCommands()) {
-                    // Schedule each command with a delay using Bukkit scheduler
+                    // Schedule each command with a delay using FoliaLib for cross-server compatibility
                     final int index = commandIndex;
                     final String cmd = command;
 
-                    Bukkit.getScheduler().runTaskLaterAsynchronously(
-                            SPPlugin.getInstance(),
-                            () -> {
+                    SPPlugin.getInstance().getFoliaLib().getScheduler().runLaterAsync(
+                            wrappedTask -> {
                                 try {
                                     // For each online player, parse placeholders
                                     for (Player player : onlinePlayers) {
