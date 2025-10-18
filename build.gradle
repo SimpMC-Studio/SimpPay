@@ -83,10 +83,6 @@ tasks.withType(JavaCompile).configureEach {
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         options.release.set(targetJavaVersion)
     }
-    // Enable Java 21 preview features (unnamed variables, etc.)
-    if (targetJavaVersion >= 21) {
-        options.compilerArgs.add('--enable-preview')
-    }
 }
 
 
