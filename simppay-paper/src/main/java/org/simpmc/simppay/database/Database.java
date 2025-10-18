@@ -28,6 +28,12 @@ public class Database {
     private final Dao<SPPlayer, UUID> playerDao;
     @Getter
     private final Dao<PlayerData, UUID> playerDataDao;
+    @Getter
+    private final Dao<MilestoneCompletion, Long> milestoneCompletionDao;
+    @Getter
+    private final Dao<MilestoneProgress, Long> milestoneProgressDao;
+    @Getter
+    private final Dao<ServerMilestoneCompletion, Long> serverMilestoneCompletionDao;
 
     public Database(DatabaseSettings db) throws SQLException {
         // Retrieve config values from your ConfigManager
@@ -85,6 +91,9 @@ public class Database {
         TableUtils.createTableIfNotExists(connectionSource, CardPayment.class);
         TableUtils.createTableIfNotExists(connectionSource, PlayerStreakPayment.class);
         TableUtils.createTableIfNotExists(connectionSource, PlayerData.class);
+        TableUtils.createTableIfNotExists(connectionSource, MilestoneCompletion.class);
+        TableUtils.createTableIfNotExists(connectionSource, MilestoneProgress.class);
+        TableUtils.createTableIfNotExists(connectionSource, ServerMilestoneCompletion.class);
 
         // Create the DAOs
         playerDao = DaoManager.createDao(connectionSource, SPPlayer.class);
@@ -92,6 +101,9 @@ public class Database {
         cardDao = DaoManager.createDao(connectionSource, CardPayment.class);
         streakDao = DaoManager.createDao(connectionSource, PlayerStreakPayment.class);
         playerDataDao = DaoManager.createDao(connectionSource, PlayerData.class);
+        milestoneCompletionDao = DaoManager.createDao(connectionSource, MilestoneCompletion.class);
+        milestoneProgressDao = DaoManager.createDao(connectionSource, MilestoneProgress.class);
+        serverMilestoneCompletionDao = DaoManager.createDao(connectionSource, ServerMilestoneCompletion.class);
 
     }
 

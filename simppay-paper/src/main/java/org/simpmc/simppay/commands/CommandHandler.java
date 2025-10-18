@@ -4,6 +4,7 @@ import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkitConfig;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.commands.root.BankingCommand;
+import org.simpmc.simppay.commands.root.MilestoneCommand;
 import org.simpmc.simppay.commands.root.NaptheCommand;
 import org.simpmc.simppay.commands.root.NaptheNhanhCommand;
 import org.simpmc.simppay.commands.root.ViewHistoryCommand;
@@ -31,6 +32,7 @@ public class CommandHandler {
         new NaptheNhanhCommand();
         new NaptheCommand();
         new ViewHistoryCommand();
+        new MilestoneCommand();
     }
 
     public void onDisable() {

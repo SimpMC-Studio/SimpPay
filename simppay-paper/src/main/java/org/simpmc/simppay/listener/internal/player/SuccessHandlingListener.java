@@ -17,6 +17,7 @@ import org.simpmc.simppay.event.PaymentSuccessEvent;
 import org.simpmc.simppay.handler.CoinsHandler;
 import org.simpmc.simppay.model.detail.BankingDetail;
 import org.simpmc.simppay.model.detail.CardDetail;
+import org.simpmc.simppay.service.IService;
 import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.util.MessageUtil;
 import org.simpmc.simppay.util.SoundUtil;
@@ -24,12 +25,24 @@ import org.simpmc.simppay.util.SoundUtil;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Listener responsible for handling payment success events for players
+ */
+public class SuccessHandlingListener implements Listener, IService {
+    private final SPPlugin plugin;
 
-// Handle all success event targeted to players
-
-public class SuccessHandlingListener implements Listener {
     public SuccessHandlingListener(SPPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void setup() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @Override
+    public void shutdown() {
+        // Event handlers automatically unregistered on plugin disable
     }
 
     @EventHandler

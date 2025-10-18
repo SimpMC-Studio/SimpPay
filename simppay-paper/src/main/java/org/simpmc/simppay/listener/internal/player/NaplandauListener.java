@@ -9,14 +9,29 @@ import org.simpmc.simppay.config.types.NaplandauConfig;
 import org.simpmc.simppay.database.entities.SPPlayer;
 import org.simpmc.simppay.event.PaymentSuccessEvent;
 import org.simpmc.simppay.service.DatabaseService;
+import org.simpmc.simppay.service.IService;
 import org.simpmc.simppay.service.database.PlayerService;
 
 import java.sql.SQLException;
 
+/**
+ * Listener responsible for "Naplandau" (loyalty bonus) mechanics
+ */
+public class NaplandauListener implements Listener, IService {
+    private final SPPlugin plugin;
 
-public class NaplandauListener implements Listener {
     public NaplandauListener(SPPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void setup() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @Override
+    public void shutdown() {
+        // Event handlers automatically unregistered on plugin disable
     }
 
     @EventHandler

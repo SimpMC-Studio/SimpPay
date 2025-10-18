@@ -14,6 +14,12 @@ import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.DatabaseConfig;
 import org.simpmc.simppay.database.Database;
 import org.simpmc.simppay.hook.HookManager;
+import org.simpmc.simppay.menu.PaymentHistoryView;
+import org.simpmc.simppay.menu.ServerPaymentHistoryView;
+import org.simpmc.simppay.menu.card.CardListView;
+import org.simpmc.simppay.menu.card.CardPriceView;
+import org.simpmc.simppay.service.*;
+import org.simpmc.simppay.service.cache.CacheDataService;
 import org.simpmc.simppay.listener.internal.cache.CacheUpdaterListener;
 import org.simpmc.simppay.listener.internal.milestone.MilestoneListener;
 import org.simpmc.simppay.listener.internal.payment.PaymentHandlingListener;
@@ -21,12 +27,6 @@ import org.simpmc.simppay.listener.internal.player.BankPromptListener;
 import org.simpmc.simppay.listener.internal.player.NaplandauListener;
 import org.simpmc.simppay.listener.internal.player.SuccessHandlingListener;
 import org.simpmc.simppay.listener.internal.player.database.SuccessDatabaseHandlingListener;
-import org.simpmc.simppay.menu.PaymentHistoryView;
-import org.simpmc.simppay.menu.ServerPaymentHistoryView;
-import org.simpmc.simppay.menu.card.CardListView;
-import org.simpmc.simppay.menu.card.CardPriceView;
-import org.simpmc.simppay.service.*;
-import org.simpmc.simppay.service.cache.CacheDataService;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -68,44 +68,128 @@ public final class SPPlugin extends JavaPlugin {
         commandHandler.onLoad();
     }
 
-    // TODO: A fking mess, please fix
     @Override
     public void onEnable() {
-        // Reset config
-        PacketEvents.getAPI().init();
-        registerMetrics();
-        if (getServer().getPluginManager().getPlugin("floodgate") != null) {
-            floodgateEnabled = true;
-            getLogger().info("Enabled floodgate support");
-        }
-        // Thanks CHATGPT, qua met r
+        getLogger().info("Starting SimpPay plugin initialization...");
+
+        // Initialize core systems
         instance = this;
         foliaLib = new FoliaLib(this);
-        // Plugin startup logic
-        configManager = new ConfigManager(this);
 
-        Database database = null;
+        // Phase 1: Load configurations
+        configManager = new ConfigManager(this);
+        getLogger().info("✓ Configuration loaded");
+
+        // Phase 2: Initialize packet handling
+        initializePacketEvents();
+
+        // Phase 3: Setup metrics
+        registerMetrics();
+        getLogger().info("✓ Metrics initialized");
+
+        // Phase 4: Detect external plugins
+        detectFloodgate();
+
+        // Phase 5: Initialize database
+        Database database = initializeDatabase();
+        if (database == null) {
+            return;
+        }
+
+        // Phase 6: Register core services
+        registerCoreServices(database);
+        registerServices();
+        getLogger().info("✓ Core services registered");
+
+        // Phase 7: Setup external plugin hooks
+        setupHooks();
+
+        // Phase 8: Setup command system
+        commandHandler.onEnable();
+        getLogger().info("✓ Command system initialized");
+
+        // Phase 9: Setup UI framework
+        setupInventoryFramework();
+
+        getLogger().info("✓ SimpPay plugin fully initialized!");
+    }
+
+    /**
+     * Initialize PacketEvents API
+     */
+    private void initializePacketEvents() {
+        PacketEvents.getAPI().init();
+        getLogger().info("✓ PacketEvents initialized");
+    }
+
+    /**
+     * Detect if Floodgate is installed for Bedrock player support
+     */
+    private void detectFloodgate() {
+        if (getServer().getPluginManager().getPlugin("floodgate") != null) {
+            floodgateEnabled = true;
+            getLogger().info("✓ Floodgate integration enabled (Bedrock support)");
+        }
+    }
+
+    /**
+     * Initialize database connection and create tables
+     *
+     * @return Database instance or null if initialization failed
+     */
+    private Database initializeDatabase() {
         try {
             DatabaseSettings databaseConf = ConfigManager.getInstance().getConfig(DatabaseConfig.class);
-            database = new Database(databaseConf);
+            Database database = new Database(databaseConf);
+            getLogger().info("✓ Database connection established");
+            return database;
         } catch (RuntimeException | SQLException e) {
-            getLogger().warning("SimpPay failed to connect to database");
-            this.getServer().getPluginManager().disablePlugin(this);
+            getLogger().severe("Failed to connect to database!");
+            getLogger().severe("SimpPay will now disable...");
             e.printStackTrace();
-            throw new RuntimeException(e);
+            this.getServer().getPluginManager().disablePlugin(this);
+            return null;
         }
+    }
+
+    /**
+     * Register all core services that manage plugin functionality
+     *
+     * @param database The initialized database instance
+     */
+    private void registerCoreServices(Database database) {
+        // Core services - order matters!
         services.add(new OrderIDService());
         services.add(new CacheDataService());
-        services.add(new DatabaseService(database));
+        DatabaseService databaseService = new DatabaseService(database);
+        services.add(databaseService);
         services.add(new PaymentService());
-        services.add(new MilestoneService());
+        services.add(new MilestoneService(databaseService));
 
-        registerServices();
+        // Event listeners (now registered as services)
+        services.add(new CacheUpdaterListener(this));
+        services.add(new PaymentHandlingListener(this));
+        services.add(new BankPromptListener(this));
+        services.add(new SuccessHandlingListener(this));
+        services.add(new SuccessDatabaseHandlingListener(this));
+        services.add(new MilestoneListener(this));
+        services.add(new NaplandauListener(this));
+    }
 
+    /**
+     * Setup external plugin integrations (hooks)
+     */
+    private void setupHooks() {
         new HookManager(this);
-        registerListener();
-        commandHandler.onEnable();
+        getLogger().info("✓ Plugin hooks initialized");
+    }
+
+    /**
+     * Setup inventory framework for menu UIs
+     */
+    private void setupInventoryFramework() {
         registerInventoryFramework();
+        getLogger().info("✓ Inventory framework configured");
     }
 
     @Override
@@ -126,36 +210,13 @@ public final class SPPlugin extends JavaPlugin {
         instance = null;
     }
 
+    /**
+     * Register all services by calling their setup() method
+     */
     private void registerServices() {
         for (var service : services) {
             service.setup();
-            getLogger().info(service.getClass().getSimpleName() + " service successfully enabled!");
-
-            if (service instanceof Listener listener) {
-                getServer().getPluginManager().registerEvents(listener, instance);
-                getLogger().info(service.getClass().getSimpleName() + " is now listening to events.");
-            }
-        }
-    }
-
-    private void registerListener() {
-        Set<Class<? extends Listener>> listeners = Set.of(
-                PaymentHandlingListener.class,
-                BankPromptListener.class,
-                SuccessHandlingListener.class,
-                SuccessDatabaseHandlingListener.class,
-                CacheUpdaterListener.class,
-                MilestoneListener.class,
-                NaplandauListener.class
-        );
-
-        for (Class<? extends Listener> listener : listeners) {
-            try {
-                listener.getConstructor(SPPlugin.class).newInstance(this);
-            } catch (Exception e) {
-                getLogger().warning("Failed to register listener: " + listener.getSimpleName());
-                e.printStackTrace();
-            }
+            getLogger().info(service.getClass().getSimpleName() + " initialized successfully!");
         }
     }
 

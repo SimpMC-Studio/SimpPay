@@ -1,6 +1,8 @@
 package org.simpmc.simppay.service.database;
 
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.stmt.QueryBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.simpmc.simppay.data.PaymentType;
 import org.simpmc.simppay.database.Database;
 import org.simpmc.simppay.database.dto.PaymentRecord;
@@ -12,19 +14,135 @@ import org.simpmc.simppay.util.CalendarUtil;
 import org.simpmc.simppay.util.MessageUtil;
 
 import java.sql.SQLException;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Optimized payment logging service with caching and efficient SQL queries.
+ * Previously fetched all records and summed in Java - now uses SQL SUM() aggregations.
+ */
+@Slf4j
 public class PaymentLogService {
     private final Dao<BankingPayment, UUID> bankDao;
     private final Dao<CardPayment, UUID> cardDao;
+
+    // Cache for amount queries with TTL (expires after 10 seconds)
+    private static final long CACHE_TTL_MS = 10_000;
+    private static final class CacheEntry {
+        final long amount;
+        final long timestamp;
+
+        CacheEntry(long amount) {
+            this.amount = amount;
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > CACHE_TTL_MS;
+        }
+    }
+
+    private final Map<String, CacheEntry> queryCache = new ConcurrentHashMap<>();
 
     public PaymentLogService(Database database) {
         this.bankDao = database.getBankDao();
         this.cardDao = database.getCardDao();
     }
 
-    // TODO: Please, someone make a PR to optimize this code, i know it is trash, better when using proper SQL Query with JOIN and SUM :D
+    /**
+     * Get cached value if available and not expired, otherwise calculate
+     */
+    private long getOrComputeAmount(String cacheKey, AmountQuery query) {
+        CacheEntry cached = queryCache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) {
+            return cached.amount;
+        }
+
+        try {
+            long amount = query.query();
+            queryCache.put(cacheKey, new CacheEntry(amount));
+            return amount;
+        } catch (Exception e) {
+            log.error("Error computing amount for cache key: {}", cacheKey, e);
+            return 0L;
+        }
+    }
+
+    @FunctionalInterface
+    private interface AmountQuery {
+        long query() throws SQLException;
+    }
+
+    /**
+     * Optimized query for total amount by summing banking and card payments
+     */
+    private long sumAmountForPlayer(SPPlayer player, Long startTime, Long endTime) throws SQLException {
+        double bankTotal = 0;
+        double cardTotal = 0;
+
+        QueryBuilder<BankingPayment, UUID> bankBuilder = bankDao.queryBuilder();
+        bankBuilder.selectRaw("COALESCE(SUM(amount), 0) as total");
+        bankBuilder.where().eq("player_uuid", player);
+
+        if (startTime != null && endTime != null) {
+            bankBuilder.where().between("timestamp", startTime, endTime);
+        }
+
+        List<BankingPayment> bankResults = bankBuilder.query();
+        if (!bankResults.isEmpty() && bankResults.get(0).getAmount() > 0) {
+            bankTotal = bankResults.get(0).getAmount();
+        }
+
+        QueryBuilder<CardPayment, UUID> cardBuilder = cardDao.queryBuilder();
+        cardBuilder.selectRaw("COALESCE(SUM(amount), 0) as total");
+        cardBuilder.where().eq("player_uuid", player);
+
+        if (startTime != null && endTime != null) {
+            cardBuilder.where().between("timestamp", startTime, endTime);
+        }
+
+        List<CardPayment> cardResults = cardBuilder.query();
+        if (!cardResults.isEmpty() && cardResults.get(0).getAmount() > 0) {
+            cardTotal = cardResults.get(0).getAmount();
+        }
+
+        return (long) (bankTotal + cardTotal);
+    }
+
+    /**
+     * Optimized query for server-wide amount
+     */
+    private long sumAmountForServer(Long startTime, Long endTime) throws SQLException {
+        double bankTotal = 0;
+        double cardTotal = 0;
+
+        QueryBuilder<BankingPayment, UUID> bankBuilder = bankDao.queryBuilder();
+        bankBuilder.selectRaw("COALESCE(SUM(amount), 0) as total");
+
+        if (startTime != null && endTime != null) {
+            bankBuilder.where().between("timestamp", startTime, endTime);
+        }
+
+        List<BankingPayment> bankResults = bankBuilder.query();
+        if (!bankResults.isEmpty() && bankResults.get(0).getAmount() > 0) {
+            bankTotal = bankResults.get(0).getAmount();
+        }
+
+        QueryBuilder<CardPayment, UUID> cardBuilder = cardDao.queryBuilder();
+        cardBuilder.selectRaw("COALESCE(SUM(amount), 0) as total");
+
+        if (startTime != null && endTime != null) {
+            cardBuilder.where().between("timestamp", startTime, endTime);
+        }
+
+        List<CardPayment> cardResults = cardBuilder.query();
+        if (!cardResults.isEmpty() && cardResults.get(0).getAmount() > 0) {
+            cardTotal = cardResults.get(0).getAmount();
+        }
+
+        return (long) (bankTotal + cardTotal);
+    }
+
     public boolean todaysPaymentExists(UUID playerId) {
         try {
             List<BankingPayment> bankingPayments = bankDao.queryBuilder()
@@ -112,43 +230,13 @@ public class PaymentLogService {
     }
 
     public Double getPlayerTotalAmount(SPPlayer playerId) {
-        try {
-            List<BankingPayment> bankingPayments = bankDao.queryBuilder()
-                    .where()
-                    .eq("player_uuid", playerId)
-                    .query();
-            List<CardPayment> cardPayments = cardDao.queryBuilder()
-                    .where()
-                    .eq("player_uuid", playerId)
-                    .query();
-            double bankingTotal = bankingPayments.stream()
-                    .mapToDouble(BankingPayment::getAmount)
-                    .sum();
-            double cardTotal = cardPayments.stream()
-                    .mapToDouble(CardPayment::getAmount)
-                    .sum();
-            return bankingTotal + cardTotal;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0.0;
-        }
+        String cacheKey = "player-total-" + playerId.getUuid();
+        return (double) getOrComputeAmount(cacheKey, () -> sumAmountForPlayer(playerId, null, null));
     }
 
     public long getEntireServerAmount() {
-        try {
-            List<BankingPayment> bankingPayments = bankDao.queryForAll();
-            List<CardPayment> cardPayments = cardDao.queryForAll();
-            double bankingTotal = bankingPayments.stream()
-                    .mapToDouble(BankingPayment::getAmount)
-                    .sum();
-            double cardTotal = cardPayments.stream()
-                    .mapToDouble(CardPayment::getAmount)
-                    .sum();
-            return (long) (bankingTotal + cardTotal);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0L;
-        }
+        String cacheKey = "server-total-all";
+        return getOrComputeAmount(cacheKey, () -> sumAmountForServer(null, null));
     }
 
     public long getEntireServerBankAmount() {
@@ -183,19 +271,10 @@ public class PaymentLogService {
             long startOfDay = CalendarUtil.getFirstHourOfDay(epoch);
             long endOfDay = CalendarUtil.getLastHourOfDay(epoch);
 
-            List<BankingPayment> bankingPayments = bankDao.queryBuilder()
-                    .where().between("timestamp", startOfDay, endOfDay).query();
-            List<CardPayment> cardPayments = cardDao.queryBuilder().where().between("timestamp", startOfDay, endOfDay).query();
-
-            double bankingTotal = bankingPayments.stream()
-                    .mapToDouble(BankingPayment::getAmount)
-                    .sum();
-            double cardTotal = cardPayments.stream()
-                    .mapToDouble(CardPayment::getAmount)
-                    .sum();
-            return (long) (bankingTotal + cardTotal);
+            String cacheKey = "server-daily-" + startOfDay;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForServer(startOfDay, endOfDay));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting server daily amount", e);
             return 0L;
         }
     }
@@ -206,19 +285,10 @@ public class PaymentLogService {
             long startOfWeek = CalendarUtil.getFirstDayOfWeek(epoch);
             long endOfWeek = CalendarUtil.getLastDayOfWeek(epoch);
 
-            List<BankingPayment> bankingPayments = bankDao.queryBuilder()
-                    .where().between("timestamp", startOfWeek, endOfWeek).query();
-            List<CardPayment> cardPayments = cardDao.queryBuilder().where().between("timestamp", startOfWeek, endOfWeek).query();
-
-            double bankingTotal = bankingPayments.stream()
-                    .mapToDouble(BankingPayment::getAmount)
-                    .sum();
-            double cardTotal = cardPayments.stream()
-                    .mapToDouble(CardPayment::getAmount)
-                    .sum();
-            return (long) (bankingTotal + cardTotal);
+            String cacheKey = "server-weekly-" + startOfWeek;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForServer(startOfWeek, endOfWeek));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting server weekly amount", e);
             return 0L;
         }
     }
@@ -229,19 +299,10 @@ public class PaymentLogService {
             long startOfMonth = CalendarUtil.getFirstDayOfMonth(epoch);
             long endOfMonth = CalendarUtil.getLastDayOfMonth(epoch);
 
-            List<BankingPayment> bankingPayments = bankDao.queryBuilder()
-                    .where().between("timestamp", startOfMonth, endOfMonth).query();
-            List<CardPayment> cardPayments = cardDao.queryBuilder().where().between("timestamp", startOfMonth, endOfMonth).query();
-
-            double bankingTotal = bankingPayments.stream()
-                    .mapToDouble(BankingPayment::getAmount)
-                    .sum();
-            double cardTotal = cardPayments.stream()
-                    .mapToDouble(CardPayment::getAmount)
-                    .sum();
-            return (long) (bankingTotal + cardTotal);
+            String cacheKey = "server-monthly-" + startOfMonth;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForServer(startOfMonth, endOfMonth));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting server monthly amount", e);
             return 0L;
         }
     }
@@ -252,19 +313,10 @@ public class PaymentLogService {
             long startOfYear = CalendarUtil.getFirstDayOfYear(epoch);
             long endOfYear = CalendarUtil.getLastDayOfYear(epoch);
 
-            List<BankingPayment> bankingPayments = bankDao.queryBuilder()
-                    .where().between("timestamp", startOfYear, endOfYear).query();
-            List<CardPayment> cardPayments = cardDao.queryBuilder().where().between("timestamp", startOfYear, endOfYear).query();
-
-            double bankingTotal = bankingPayments.stream()
-                    .mapToDouble(BankingPayment::getAmount)
-                    .sum();
-            double cardTotal = cardPayments.stream()
-                    .mapToDouble(CardPayment::getAmount)
-                    .sum();
-            return (long) (bankingTotal + cardTotal);
+            String cacheKey = "server-yearly-" + startOfYear;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForServer(startOfYear, endOfYear));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting server yearly amount", e);
             return 0L;
         }
     }
@@ -275,9 +327,10 @@ public class PaymentLogService {
             long startOfDay = CalendarUtil.getFirstHourOfDay(epoch);
             long endOfDay = CalendarUtil.getLastHourOfDay(epoch);
 
-            return queryForPlayerAmount(playerId, startOfDay, endOfDay);
+            String cacheKey = "player-daily-" + playerId.getUuid() + "-" + startOfDay;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForPlayer(playerId, startOfDay, endOfDay));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting player daily amount", e);
             return 0L;
         }
     }
@@ -288,9 +341,10 @@ public class PaymentLogService {
             long startOfWeek = CalendarUtil.getFirstDayOfWeek(epoch);
             long endOfWeek = CalendarUtil.getLastDayOfWeek(epoch);
 
-            return queryForPlayerAmount(playerId, startOfWeek, endOfWeek);
+            String cacheKey = "player-weekly-" + playerId.getUuid() + "-" + startOfWeek;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForPlayer(playerId, startOfWeek, endOfWeek));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting player weekly amount", e);
             return 0L;
         }
     }
@@ -301,9 +355,10 @@ public class PaymentLogService {
             long startOfMonth = CalendarUtil.getFirstDayOfMonth(epoch);
             long endOfMonth = CalendarUtil.getLastDayOfMonth(epoch);
 
-            return queryForPlayerAmount(playerId, startOfMonth, endOfMonth);
+            String cacheKey = "player-monthly-" + playerId.getUuid() + "-" + startOfMonth;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForPlayer(playerId, startOfMonth, endOfMonth));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting player monthly amount", e);
             return 0L;
         }
     }
@@ -314,9 +369,10 @@ public class PaymentLogService {
             long startOfYear = CalendarUtil.getFirstDayOfYear(epoch);
             long endOfYear = CalendarUtil.getLastDayOfYear(epoch);
 
-            return queryForPlayerAmount(playerId, startOfYear, endOfYear);
+            String cacheKey = "player-yearly-" + playerId.getUuid() + "-" + startOfYear;
+            return getOrComputeAmount(cacheKey, () -> sumAmountForPlayer(playerId, startOfYear, endOfYear));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error getting player yearly amount", e);
             return 0L;
         }
     }

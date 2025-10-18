@@ -18,15 +18,31 @@ import org.simpmc.simppay.event.PaymentQueueSuccessEvent;
 import org.simpmc.simppay.event.PaymentSuccessEvent;
 import org.simpmc.simppay.model.PaymentResult;
 import org.simpmc.simppay.model.detail.CardDetail;
+import org.simpmc.simppay.service.IService;
 import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.util.MessageUtil;
 import org.simpmc.simppay.util.SoundUtil;
 
 import java.time.Duration;
 
-public class PaymentHandlingListener implements Listener {
+/**
+ * Listener responsible for handling payment success/failure events
+ */
+public class PaymentHandlingListener implements Listener, IService {
+    private final SPPlugin plugin;
+
     public PaymentHandlingListener(SPPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void setup() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @Override
+    public void shutdown() {
+        // Event handlers automatically unregistered on plugin disable
     }
 
     @EventHandler

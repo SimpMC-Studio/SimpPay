@@ -45,30 +45,32 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, @NotNull String identifier) {
 
         CacheDataService cacheDataService = SPPlugin.getService(CacheDataService.class);
+        var serverStats = cacheDataService.getServerStatsCache();
+        var playerStats = cacheDataService.getPlayerStatsCache();
 
         // get server_total
         // %simppay_server_total%
         if (identifier.equalsIgnoreCase("server_total")) {
-            return cacheDataService.getServerTotalValue().toString(); // cached
+            return String.valueOf(serverStats.getTotalAmount());
         }
         // %simppay_server_total_formatted%
         if (identifier.equalsIgnoreCase("server_total_formatted")) {
-            return String.format("%,d", cacheDataService.getServerTotalValue().get());
+            return String.format("%,d", serverStats.getTotalAmount());
         }
         // %simppay_bank_total_formatted%
         if (identifier.equalsIgnoreCase("bank_total_formatted")) {
-            return String.format("%,d", cacheDataService.getBankTotalValue().get());
+            return String.format("%,d", serverStats.getBankTotalAmount());
         }
         // %simppay_card_total_formatted%
         if (identifier.equalsIgnoreCase("card_total_formatted")) {
-            return String.format("%,d", cacheDataService.getCardTotalValue().get());
+            return String.format("%,d", serverStats.getCardTotalAmount());
         }
 
         // %simppay_end_promo%
         if (identifier.equalsIgnoreCase("end_promo")) {
             CoinsConfig coinsConfig = ConfigManager.getInstance().getConfig(CoinsConfig.class);
             MessageConfig messageConfig = ConfigManager.getInstance().getConfig(MessageConfig.class);
-            
+
             // check promo time
             try {
                 LocalDateTime promoEndTime = LocalDateTime.parse(coinsConfig.promoEndTimeString, coinsConfig.formatter);
@@ -88,18 +90,22 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
         }
 
         UUID uuid = player.getUniqueId();
-        if (!cacheDataService.getPlayerTotalValue().containsKey(uuid)) {
-            cacheDataService.addPlayerToQueue(uuid);
-            return "0";
-        }
 
         // %simppay_total%
         if (identifier.equalsIgnoreCase("total")) {
-            return cacheDataService.getPlayerTotalValue().get(uuid).toString();
+            long total = playerStats.getTotalAmount(uuid);
+            if (total == 0) {
+                cacheDataService.addPlayerToQueue(uuid);
+            }
+            return String.valueOf(total);
         }
         // %simppay_total_formatted%
         if (identifier.equalsIgnoreCase("total_formatted")) {
-            return String.format("%,d", cacheDataService.getPlayerTotalValue().get(uuid).get());
+            long total = playerStats.getTotalAmount(uuid);
+            if (total == 0) {
+                cacheDataService.addPlayerToQueue(uuid);
+            }
+            return String.format("%,d", total);
         }
 
         return null;

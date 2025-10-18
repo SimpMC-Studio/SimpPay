@@ -7,22 +7,41 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.event.PaymentSuccessEvent;
 import org.simpmc.simppay.service.DatabaseService;
+import org.simpmc.simppay.service.IService;
 import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.service.cache.CacheDataService;
 
-public class CacheUpdaterListener implements Listener {
+/**
+ * Listener responsible for updating player and server caches on events
+ */
+public class CacheUpdaterListener implements Listener, IService {
+    private final SPPlugin plugin;
+
     public CacheUpdaterListener(SPPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void setup() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        plugin.getFoliaLib().getScheduler().runLaterAsync(() -> {
-                    SPPlugin.getService(CacheDataService.class).updateServerDataCache();
-                }, 1
+        // Initial server cache load
+        plugin.getFoliaLib().getScheduler().runLaterAsync(
+                task -> SPPlugin.getService(CacheDataService.class).updateServerDataCache(),
+                1
         );
+    }
+
+    @Override
+    public void shutdown() {
+        // Event handlers automatically unregistered on plugin disable
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         SPPlugin plugin = SPPlugin.getInstance();
-        plugin.getFoliaLib().getScheduler().runAsync(task2 -> SPPlugin.getService(DatabaseService.class).getPlayerService().createPlayer(event.getPlayer()));
+        plugin.getFoliaLib().getScheduler().runAsync(
+                task -> SPPlugin.getService(DatabaseService.class).getPlayerService().createPlayer(event.getPlayer())
+        );
         SPPlugin.getService(CacheDataService.class).addPlayerToQueue(event.getPlayer().getUniqueId());
     }
 
@@ -37,6 +56,8 @@ public class CacheUpdaterListener implements Listener {
     public void onPaymentSuccess(PaymentSuccessEvent event) {
         SPPlugin plugin = SPPlugin.getInstance();
         SPPlugin.getService(CacheDataService.class).addPlayerToQueue(event.getPlayerUUID());
-        plugin.getFoliaLib().getScheduler().runAsync(task2 -> SPPlugin.getService(CacheDataService.class).updateServerDataCache());
+        plugin.getFoliaLib().getScheduler().runAsync(
+                task -> SPPlugin.getService(CacheDataService.class).updateServerDataCache()
+        );
     }
 }

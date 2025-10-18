@@ -1,262 +1,115 @@
 package org.simpmc.simppay.listener.internal.milestone;
 
-import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
-import me.clip.placeholderapi.PlaceholderAPI;
-import net.kyori.adventure.bossbar.BossBar;
-import org.bukkit.Bukkit;
+import lombok.extern.slf4j.Slf4j;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.simpmc.simppay.SPPlugin;
-import org.simpmc.simppay.config.types.data.MilestoneConfig;
-import org.simpmc.simppay.data.milestone.MilestoneType;
-import org.simpmc.simppay.database.entities.SPPlayer;
 import org.simpmc.simppay.event.PaymentSuccessEvent;
-import org.simpmc.simppay.event.PlayerMilestoneEvent;
-import org.simpmc.simppay.event.ServerMilestoneEvent;
 import org.simpmc.simppay.service.DatabaseService;
+import org.simpmc.simppay.service.IService;
 import org.simpmc.simppay.service.MilestoneService;
 import org.simpmc.simppay.service.database.PaymentLogService;
 import org.simpmc.simppay.service.database.PlayerService;
 import org.simpmc.simppay.util.MessageUtil;
 
-import java.util.*;
+/**
+ * Refactored Milestone Listener using new MilestoneService architecture.
+ * Handles player joins, quits, and milestone reward triggering on payments.
+ */
+@Slf4j
+public class MilestoneListener implements Listener, IService {
+    private final SPPlugin plugin;
 
-public class MilestoneListener implements Listener {
     public MilestoneListener(SPPlugin plugin) {
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.plugin = plugin;
     }
 
+    @Override
+    public void setup() {
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        MessageUtil.info("Milestone Listener initialized");
+    }
 
+    @Override
+    public void shutdown() {
+        // Event handlers automatically unregistered on plugin disable
+    }
+
+    /**
+     * Handle player join - load their milestones
+     */
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(() -> {
-            UUID uuid = event.getPlayer().getUniqueId();
-            MilestoneService service = SPPlugin.getService(MilestoneService.class);
-            MessageUtil.debug("Loading player milestone for " + event.getPlayer().getName());
-
-            List<BossBar> serverBossbars = service.serverBossbars.stream().map(ObjectObjectMutablePair::right).toList();
-            SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(task -> {
-                service.loadPlayerMilestone(uuid);
-            }, 20 * 2).thenAccept(task -> {
-                List<BossBar> playerBossbars = service.playerBossBars.get(uuid).stream().map(ObjectObjectMutablePair::right).toList();
-                for (BossBar bar : playerBossbars) {
-                    SPPlugin.getInstance().getFoliaLib().getScheduler().runAtEntity(event.getPlayer(), task2 -> {
-                        bar.addViewer(event.getPlayer());
-                    });
-                }
-            });
-
-            // have to load after player milestone is loaded
-            for (BossBar bar : serverBossbars) {
-                bar.addViewer(event.getPlayer());
+        Player player = event.getPlayer();
+        try {
+            MilestoneService milestoneService = SPPlugin.getService(MilestoneService.class);
+            if (milestoneService != null) {
+                // Load player milestones with small delay to ensure they're fully loaded
+                SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(() -> {
+                    milestoneService.reloadPlayerMilestones(player.getUniqueId());
+                    MessageUtil.debug("Loaded milestones for player " + player.getName());
+                }, 1);
             }
-
-        }, 20);
+        } catch (Exception e) {
+            log.error("Error handling player join for milestone loading", e);
+        }
     }
 
+    /**
+     * Handle player quit - clean up milestone cache
+     */
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        MilestoneService service = SPPlugin.getService(MilestoneService.class);
-        service.playerBossBars.remove(event.getPlayer().getUniqueId());
-        service.playerCurrentMilestones.remove(event.getPlayer().getUniqueId());
-        MessageUtil.debug("Cleared cache bossbar and currentmilestones " + event.getPlayer().getName());
+        try {
+            MilestoneService milestoneService = SPPlugin.getService(MilestoneService.class);
+            if (milestoneService != null) {
+                milestoneService.getMilestoneCache().clearPlayerMilestones(event.getPlayer().getUniqueId());
+                MessageUtil.debug("Cleaned up milestone cache for player " + event.getPlayer().getName());
+            }
+        } catch (Exception e) {
+            log.error("Error handling player quit for milestone cleanup", e);
+        }
     }
 
+    /**
+     * Handle successful payment - check for milestone completion
+     */
     @EventHandler
-    public void givePersonalMilestoneReward(PaymentSuccessEvent event) {
-        MilestoneService milestoneService = SPPlugin.getService(MilestoneService.class);
-        PlayerService playerService = SPPlugin.getService(DatabaseService.class).getPlayerService();
-        PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-        SPPlayer player = playerService.findByUuid(event.getPlayerUUID());
-        double charged = event.getAmount();
-
-        List<MilestoneConfig> list = milestoneService.playerCurrentMilestones.getOrDefault(event.getPlayerUUID(), new ArrayList<>());
-        Iterator<MilestoneConfig> iter = list.iterator();
-
-        while (iter.hasNext()) {
-            MilestoneConfig config = iter.next();
-
-            double playerNewBal = switch (config.getType()) {
-                case ALL -> paymentLogService.getPlayerTotalAmount(player);
-                case DAILY -> paymentLogService.getPlayerDailyAmount(player);
-                case WEEKLY -> paymentLogService.getPlayerWeeklyAmount(player);
-                case MONTHLY -> paymentLogService.getPlayerMonthlyAmount(player);
-                case YEARLY -> paymentLogService.getPlayerYearlyAmount(player);
-                default -> throw new IllegalStateException("Unexpected value: " + config.getType());
-            };
-            /*
-             * @param playerNewBal số tiền sau khi nạp
-             * @param charged số tiền nạp
-             */
-            if (playerNewBal >= config.amount && playerNewBal - charged < config.amount) {
-                // Milestone complete
-                for (String command : config.getCommands()) {
-                    SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(task2 -> {
-                        String formattedCommand = PlaceholderAPI.setPlaceholders(Bukkit.getPlayer(event.getPlayerUUID()), command);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), formattedCommand);
-                        MessageUtil.debug("Ran " + formattedCommand);
-                    }, 1);
-                }
-                // reset player current milestone
-                iter.remove();
-                MessageUtil.debug("Player " + player.getName() + " completed milestone " + config.amount);
-                MessageUtil.debug("Player " + player.getName() + " remaining milestone " + milestoneService.playerCurrentMilestones.get(event.getPlayerUUID()).size());
-                MessageUtil.debug("Player " + player.getName() + " removed " + config.toString());
-                // Call event for player milestone
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    SPPlugin.getInstance().getServer().getPluginManager().callEvent(new PlayerMilestoneEvent(event.getPlayerUUID()));
-                });
+    public void onPaymentSuccess(PaymentSuccessEvent event) {
+        try {
+            Player player = SPPlugin.getInstance().getServer().getPlayer(event.getPlayerUUID());
+            if (player == null) {
+                return; // Player is offline
             }
-        }
 
-    }
-
-    @EventHandler
-    public void updatePersonalMilestoneBossbar(PaymentSuccessEvent event) {
-        MilestoneService service = SPPlugin.getService(MilestoneService.class);
-        PlayerService playerService = SPPlugin.getService(DatabaseService.class).getPlayerService();
-        PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-        SPPlayer player = playerService.findByUuid(event.getPlayerUUID());
-        Iterator<ObjectObjectMutablePair<MilestoneConfig, BossBar>> iter = service.playerBossBars.get(event.getPlayerUUID()).iterator();
-        while (iter.hasNext()) {
-            ObjectObjectMutablePair<MilestoneConfig, BossBar> pair = iter.next();
-            if (pair == null) {
-                continue;
+            MilestoneService milestoneService = SPPlugin.getService(MilestoneService.class);
+            if (milestoneService == null) {
+                return;
             }
-            double playerNewBal = switch (pair.left().type) {
-                case MilestoneType.ALL -> paymentLogService.getPlayerTotalAmount(player);
-                case MilestoneType.DAILY -> paymentLogService.getPlayerDailyAmount(player);
-                case MilestoneType.WEEKLY -> paymentLogService.getPlayerWeeklyAmount(player);
-                case MilestoneType.MONTHLY -> paymentLogService.getPlayerMonthlyAmount(player);
-                case MilestoneType.YEARLY -> paymentLogService.getPlayerYearlyAmount(player);
-                default -> throw new IllegalStateException("Unexpected value: " + pair);
-            };
-            BossBar bar = pair.right();
-            double milestone = pair.left().amount;
-            double newProgress = (playerNewBal) / milestone;
 
-            if (newProgress >= 1) {
-                // Milestone complete
-                iter.remove();
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(() -> {
-                    bar.removeViewer(Bukkit.getPlayer(event.getPlayerUUID()));
-                    Bukkit.getPluginManager().callEvent(new PlayerMilestoneEvent(event.getPlayerUUID()));
-                }, 1);
+            PlayerService playerService = SPPlugin.getService(DatabaseService.class).getPlayerService();
+            PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
 
-            } else {
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(() -> {
-                    bar.progress((float) newProgress);
-                }, 1);
-            }
-        }
+            // Get the player's new total amount
+            double newTotalAmount = paymentLogService.getPlayerTotalAmount(
+                    playerService.findByUuid(event.getPlayerUUID())
+            );
 
-    }
+            // Check for player milestone completion
+            milestoneService.checkPlayerMilestones(player, (long) newTotalAmount);
 
+            // Get server's new total amount
+            long newServerAmount = paymentLogService.getEntireServerAmount();
 
-    @EventHandler
-    public void giveServerMilestoneReward(PaymentSuccessEvent event) {
-        MilestoneService milestoneService = SPPlugin.getService(MilestoneService.class);
-        PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-        double charged = event.getAmount();
-        List<MilestoneConfig> list = milestoneService.serverCurrentMilestones;
-        if (list == null) {
-            return;
-        }
-        Iterator<MilestoneConfig> iter = list.iterator();
-        while (iter.hasNext()) {
-            MilestoneConfig config = iter.next();
-            double serverNewBal = switch (config.getType()) {
-                case ALL -> paymentLogService.getEntireServerAmount();
-                case DAILY -> paymentLogService.getEntireServerDailyAmount();
-                case WEEKLY -> paymentLogService.getEntireServerWeeklyAmount();
-                case MONTHLY -> paymentLogService.getEntireServerMonthlyAmount();
-                case YEARLY -> paymentLogService.getEntireServerYearlyAmount();
-                default -> throw new IllegalStateException("Unexpected value: " + config.getType());
-            };
-            /*
-             * @param playerNewBal số tiền sau khi nạp
-             * @param charged số tiền nạp
-             */
-            if (serverNewBal >= config.amount && serverNewBal - charged < config.amount) {
-                // Milestone complete
-                Deque<String> commands = new ArrayDeque<>();
-                for (String command : config.getCommands()) {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        String formattedCommand = PlaceholderAPI.setPlaceholders(player, command);
-                        commands.add(formattedCommand);
-                    }
-                }
+            // Check for server milestone completion
+            milestoneService.checkServerMilestones(newServerAmount);
 
-                // queue commands to console using timer
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runTimer(task2 -> {
-                    if (commands.isEmpty()) {
-                        task2.cancel();
-                        return;
-                    }
-                    String command = commands.poll();
-                    if (command == null) {
-                        task2.cancel();
-                        return;
-                    }
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                    MessageUtil.debug("Ran " + command);
-
-                }, 1, 20);
-
-                // reset player current milestone
-                iter.remove();
-                MessageUtil.debug("Server completed milestone " + config.amount);
-                MessageUtil.debug("Server remaining milestone " + milestoneService.playerCurrentMilestones.get(event.getPlayerUUID()).size());
-                MessageUtil.debug("Server removed " + config.toString());
-                // Call event for player milestone
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    SPPlugin.getInstance().getServer().getPluginManager().callEvent(new ServerMilestoneEvent(config));
-                });
-            }
-        }
-
-
-    }
-
-    @EventHandler
-    public void updateServerMilestoneBossbar(PaymentSuccessEvent event) {
-        MilestoneService service = SPPlugin.getService(MilestoneService.class);
-        PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-        Iterator<ObjectObjectMutablePair<MilestoneConfig, BossBar>> iter = service.serverBossbars.iterator();
-        while (iter.hasNext()) {
-            ObjectObjectMutablePair<MilestoneConfig, BossBar> pair = iter.next();
-            if (pair == null) {
-                continue;
-            }
-            double serverNewBal = switch (pair.left().type) {
-                case ALL -> paymentLogService.getEntireServerAmount();
-                case DAILY -> paymentLogService.getEntireServerDailyAmount();
-                case WEEKLY -> paymentLogService.getEntireServerWeeklyAmount();
-                case MONTHLY -> paymentLogService.getEntireServerMonthlyAmount();
-                case YEARLY -> paymentLogService.getEntireServerYearlyAmount();
-                default -> throw new IllegalStateException("Unexpected value: " + pair);
-            };
-            BossBar bar = pair.right();
-            double milestone = pair.left().amount;
-            double newProgress = (serverNewBal) / milestone;
-
-            if (newProgress >= 1) {
-                // Milestone complete
-                iter.remove();
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        bar.removeViewer(player);
-                    }
-                });
-            } else {
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    bar.progress((float) newProgress);
-                });
-            }
+            MessageUtil.debug("Payment success - checked milestones for player " + player.getName());
+        } catch (Exception e) {
+            log.error("Error handling payment success for milestones", e);
         }
     }
-
 }

@@ -14,6 +14,6 @@ public class ReloadServerMilestoneCommand {
     }
 
     public static void execute(CommandSender player, CommandArguments args) {
-        SPPlugin.getService(MilestoneService.class).loadServerMilestone();
+        SPPlugin.getService(MilestoneService.class).reloadServerMilestones();
     }
 }

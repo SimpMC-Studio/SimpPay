@@ -33,6 +33,7 @@ dependencies {
     implementation('me.devnatan:inventory-framework-platform-paper:3.5.0')
     implementation("com.github.retrooper:packetevents-spigot:2.9.4")
     implementation('net.wesjd:anvilgui:1.10.6-SNAPSHOT')
+    implementation('com.github.ben-manes.caffeine:caffeine:3.1.8')
 }
 
 shadowJar {
@@ -54,7 +55,9 @@ shadowJar {
     relocate("com.github.retrooper.packetevents", "me.typical.lib.com.packetevents")
     relocate("net.wesjd.anvilgui", "me.typical.lib.anvilgui")
     relocate("kotlin", "me.typical.lib.kotlin")
+    relocate("com.github.benmanes.caffeine", "me.typical.lib.caffeine")
 }
+
 tasks.register('sendRconCommand') {
     description = 'Sends "res" command to the Minecraft server via RCON'
     doLast {

@@ -6,12 +6,27 @@ import org.bukkit.event.Listener;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.event.PaymentSuccessEvent;
 import org.simpmc.simppay.service.DatabaseService;
+import org.simpmc.simppay.service.IService;
 import org.simpmc.simppay.service.cache.CacheDataService;
 
-// fking ass class name, longgg
-public class SuccessDatabaseHandlingListener implements Listener {
+/**
+ * Listener responsible for persisting payment success events to database
+ */
+public class SuccessDatabaseHandlingListener implements Listener, IService {
+    private final SPPlugin plugin;
+
     public SuccessDatabaseHandlingListener(SPPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void setup() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @Override
+    public void shutdown() {
+        // Event handlers automatically unregistered on plugin disable
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

@@ -1,7 +1,7 @@
 package org.simpmc.simppay.service;
 
-import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
-import net.kyori.adventure.bossbar.BossBar;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.simpmc.simppay.SPPlugin;
@@ -13,161 +13,269 @@ import org.simpmc.simppay.config.types.data.MilestoneConfig;
 import org.simpmc.simppay.data.milestone.MilestoneType;
 import org.simpmc.simppay.database.entities.SPPlayer;
 import org.simpmc.simppay.service.database.PaymentLogService;
+import org.simpmc.simppay.service.milestone.*;
 import org.simpmc.simppay.util.MessageUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
+/**
+ * Refactored Milestone Service using new architecture.
+ * Orchestrates MilestoneCache, MilestoneRewardExecutor, and MilestoneResetScheduler.
+ */
+@Slf4j
 public class MilestoneService implements IService {
-    //     NOTE: BossBar are static, changing bossbar reflect the changes to player who are added to it
-//     Design a central bossbar of the plugin
-//     Use one for player
-//     one for entire server
-//     config example
-//     ALL:
-//     - amount: 100
-//       commands:
-//       - "/tell %player_name% Cảm ơn đã ủng hộ server hehe"
-//       - "/tell %player_name% Cảm ơn đã ủng hộ server hehe"
-//     DAILY:
-//     - amount: 100
-//       commands:
-//       - "/tell %player_name% Cảm ơn đã ủng hộ server hehe"
-    public ConcurrentHashMap<UUID, List<ObjectObjectMutablePair<MilestoneConfig, BossBar>>> playerBossBars = new ConcurrentHashMap<>();
-    public ConcurrentHashMap<UUID, List<MilestoneConfig>> playerCurrentMilestones = new ConcurrentHashMap<>();
-    public List<MilestoneConfig> serverCurrentMilestones = new ArrayList<>();
-    public List<ObjectObjectMutablePair<MilestoneConfig, BossBar>> serverBossbars = new ArrayList<>(); // contains all valid loaded milestones
 
+    @Getter
+    private final MilestoneCache cache;
+
+    @Getter
+    private final MilestoneRewardExecutor rewardExecutor;
+
+    @Getter
+    private final MilestoneResetScheduler resetScheduler;
+
+    @Getter
+    private final MilestoneNotificationService notificationService;
+
+    private final PaymentLogService paymentLogService;
+
+    // Delay between server milestone reward commands (in ticks)
+    private static final long COMMAND_DELAY_TICKS = 1;
+
+    public MilestoneService(DatabaseService databaseService) {
+        this.paymentLogService = databaseService.getPaymentLogService();
+        this.cache = new MilestoneCache();
+        this.rewardExecutor = new MilestoneRewardExecutor(databaseService);
+        this.notificationService = new MilestoneNotificationService();
+        this.rewardExecutor.setNotificationService(this.notificationService);
+        this.resetScheduler = new MilestoneResetScheduler(
+                cache,
+                this::reloadServerMilestones,
+                () -> reloadAllPlayerMilestones()
+        );
+    }
 
     @Override
     public void setup() {
-        playerCurrentMilestones.clear();
-        playerBossBars.clear();
-        serverCurrentMilestones.clear();
-        serverBossbars.clear();
-        loadServerMilestone();
-        for (Player p : Bukkit.getOnlinePlayers()) { // thread-safe for folia
-            loadPlayerMilestone(p.getUniqueId());
+        MessageUtil.info("Setting up Milestone Service...");
+        cache.clear();
+        resetScheduler.setup();
+        reloadServerMilestones();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            reloadPlayerMilestones(player.getUniqueId());
         }
+        MessageUtil.info("Milestone Service initialized successfully");
     }
 
     @Override
     public void shutdown() {
-        playerCurrentMilestones.clear();
-        playerBossBars.clear();
-        serverCurrentMilestones.clear();
-        serverBossbars.clear();
+        MessageUtil.info("Shutting down Milestone Service...");
+        cache.clear();
     }
 
-    // all milestones should be reloaded upon a milestone complete event
-    public void loadServerMilestone() {
+    /**
+     * Reload server milestones from configuration (async via FoliaLib)
+     */
+    public void reloadServerMilestones() {
         SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> {
-            PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
+            try {
+                long serverAmount = paymentLogService.getEntireServerAmount();
+                MocNapServerConfig config = ConfigManager.getInstance().getConfig(MocNapServerConfig.class);
 
-            long entireServerAmount = SPPlugin.getService(DatabaseService.class).getPaymentLogService().getEntireServerAmount();
-            MocNapServerConfig mocNapServerConfig = ConfigManager.getInstance().getConfig(MocNapServerConfig.class);
-
-            for (Map.Entry<MilestoneType, List<MilestoneConfig>> entry : mocNapServerConfig.mocnap.entrySet()) {
-                MilestoneType type = entry.getKey();
-                if (type == null) {
-                    continue;
+                if (config == null || config.mocnap == null) {
+                    MessageUtil.warn("Server milestone config is null or empty");
+                    return;
                 }
-                MessageUtil.debug("Loading MocNap Server " + type.name());
-                for (MilestoneConfig config : entry.getValue()) {
 
-                    if (config.amount <= entireServerAmount) {
-                        continue;
-                    }
-                    if (config.type != type) {
-                        config.setType(type); // auto correct
-                    }
-                    MessageUtil.debug("Loading MocNap Server " + type.name() + " " + config.amount);
-                    BossBarConfig bossBarConfig = config.bossbar;
-                    double serverBal = switch (config.getType()) {
-                        case ALL -> paymentLogService.getEntireServerAmount();
-                        case DAILY -> paymentLogService.getEntireServerDailyAmount();
-                        case WEEKLY -> paymentLogService.getEntireServerWeeklyAmount();
-                        case MONTHLY -> paymentLogService.getEntireServerMonthlyAmount();
-                        case YEARLY -> paymentLogService.getEntireServerYearlyAmount();
-                        default -> throw new IllegalStateException("Unexpected value: " + config.getType());
-                    };
-                    if (config.bossbar.enabled) {
-                        BossBar bossBar = BossBar.bossBar(
-                                MessageUtil.getComponentParsed(bossBarConfig.getTitle(), null), // bossbar title will be loaded after
-                                (float) (serverBal / config.amount),
-                                config.bossbar.color,
-                                config.bossbar.style
-                        );
-                        serverBossbars.add(new ObjectObjectMutablePair<>(config, bossBar));
-                        MessageUtil.debug("Loaded MocNap Server BossBar " + type.name() + " " + config.amount);
-                    }
-                    serverCurrentMilestones.add(config);
-                    MessageUtil.debug("Loaded MocNap Server Entry For Player " + type.name() + " " + config.amount);
+                List<MilestoneConfig> activeMilestones = new ArrayList<>();
 
+                for (Map.Entry<MilestoneType, List<MilestoneConfig>> entry : config.mocnap.entrySet()) {
+                    MilestoneType type = entry.getKey();
+                    if (type == null) continue;
+
+                    for (MilestoneConfig milestone : entry.getValue()) {
+                        if (milestone == null) continue;
+
+                        // Filter out already completed milestones
+                        if (serverAmount < milestone.getAmount()) {
+                            activeMilestones.add(milestone);
+                            MessageUtil.debug("Server milestone loaded: " + milestone.getAmount() + " (" + type + ")");
+                        }
+                    }
                 }
+
+                cache.setServerMilestones(activeMilestones);
+                MessageUtil.info("Server milestones reloaded: " + activeMilestones.size() + " active");
+                log.info("Server milestones reloaded: {} active out of {} total", activeMilestones.size(), config.mocnap.values().stream().mapToInt(List::size).sum());
+            } catch (Exception e) {
+                MessageUtil.warn("Error reloading server milestones: " + e.getMessage());
+                log.error("Error reloading server milestones", e);
             }
         });
     }
 
-    public void loadPlayerMilestone(UUID uuid) {
-        playerCurrentMilestones.remove(uuid);
-        playerBossBars.remove(uuid);
+    /**
+     * Reload milestones for a specific player (async via FoliaLib)
+     */
+    public void reloadPlayerMilestones(UUID playerUUID) {
         SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> {
-            PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-
-            SPPlayer player = SPPlugin.getService(DatabaseService.class).getPlayerService().findByUuid(uuid);
-            double playerChargedAmount = SPPlugin.getService(DatabaseService.class).getPaymentLogService().getPlayerTotalAmount(player);
-
-            MocNapConfig mocNapConfig = ConfigManager.getInstance().getConfig(MocNapConfig.class);
-            MessageUtil.debug("Loading MocNap For Player " + player.getName());
-            playerBossBars.putIfAbsent(uuid, new ArrayList<>());
-            playerCurrentMilestones.putIfAbsent(uuid, new ArrayList<>());
-            for (Map.Entry<MilestoneType, List<MilestoneConfig>> entry : mocNapConfig.mocnap.entrySet()) {
-                MilestoneType type = entry.getKey();
-                if (type == null) {
-                    continue;
-                }
-                MessageUtil.debug("Loading MocNap Entry For Player " + type.name());
-
-                for (MilestoneConfig config : entry.getValue()) {
-                    if (config.amount <= playerChargedAmount) {
-                        continue;
-                    }
-                    if (config.type != type) {
-                        config.setType(type); // auto correct
-                    }
-                    MessageUtil.debug("Loading MocNap Entry For Player " + type.name() + " " + config.amount);
-                    BossBarConfig bossBarConfig = config.bossbar;
-                    double playerBal = switch (config.getType()) {
-                        case MilestoneType.ALL -> paymentLogService.getPlayerTotalAmount(player);
-                        case MilestoneType.DAILY -> paymentLogService.getPlayerDailyAmount(player);
-                        case MilestoneType.WEEKLY -> paymentLogService.getPlayerWeeklyAmount(player);
-                        case MilestoneType.MONTHLY -> paymentLogService.getPlayerMonthlyAmount(player);
-                        case MilestoneType.YEARLY -> paymentLogService.getPlayerYearlyAmount(player);
-                        default -> throw new IllegalStateException("Unexpected value: " + config.getType());
-                    };
-                    if (config.bossbar.enabled) {
-                        BossBar bossBar = BossBar.bossBar(
-                                MessageUtil.getComponentParsed(bossBarConfig.getTitle(), null), // bossbar title will be loaded after
-                                (float) (playerBal / config.amount),
-                                config.bossbar.color,
-                                config.bossbar.style
-                        );
-                        playerBossBars.get(uuid).add(new ObjectObjectMutablePair<>(config, bossBar));
-                        MessageUtil.debug("Loaded MocNap BossBar For Player " + type.name() + " " + config.amount);
-                    }
-                    playerCurrentMilestones.get(uuid).add(config);
-                    MessageUtil.debug("Loaded MocNap Entry For Player " + type.name() + " " + config.amount);
-
+            try {
+                Player player = Bukkit.getPlayer(playerUUID);
+                if (player == null) {
+                    cache.clearPlayerMilestones(playerUUID);
+                    return;
                 }
 
+                long playerAmount = paymentLogService.getPlayerTotalAmount(
+                        SPPlugin.getService(DatabaseService.class).getPlayerService().findByUuid(playerUUID)
+                ).longValue();
+
+                MocNapConfig config = ConfigManager.getInstance().getConfig(MocNapConfig.class);
+                if (config == null || config.mocnap == null) {
+                    MessageUtil.warn("Player milestone config is null or empty");
+                    return;
+                }
+
+                List<MilestoneConfig> activeMilestones = new ArrayList<>();
+
+                for (Map.Entry<MilestoneType, List<MilestoneConfig>> entry : config.mocnap.entrySet()) {
+                    MilestoneType type = entry.getKey();
+                    if (type == null) continue;
+
+                    for (MilestoneConfig milestone : entry.getValue()) {
+                        if (milestone == null) continue;
+
+                        // Filter out already completed milestones
+                        if (playerAmount < milestone.getAmount()) {
+                            activeMilestones.add(milestone);
+                        }
+                    }
+                }
+
+                cache.setPlayerMilestones(playerUUID, activeMilestones);
+                MessageUtil.debug("Player " + player.getName() + " milestones reloaded: " + activeMilestones.size() + " active");
+            } catch (Exception e) {
+                MessageUtil.warn("Error reloading milestones for player " + playerUUID + ": " + e.getMessage());
+                log.error("Error reloading milestones for player {}", playerUUID, e);
             }
         });
-
-
     }
 
+    /**
+     * Reload all player milestones
+     */
+    private void reloadAllPlayerMilestones() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            reloadPlayerMilestones(player.getUniqueId());
+        }
+    }
+
+    /**
+     * Check and process player milestone completion (async via FoliaLib)
+     */
+    public void checkPlayerMilestones(Player player, long newAmount) {
+        SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> {
+            try {
+                UUID playerUUID = player.getUniqueId();
+                List<MilestoneConfig> activeMilestones = cache.getPlayerMilestones(playerUUID);
+
+                if (activeMilestones == null || activeMilestones.isEmpty()) {
+                    return;
+                }
+
+                List<MilestoneConfig> completedMilestones = new ArrayList<>();
+
+                for (MilestoneConfig milestone : activeMilestones) {
+                    if (milestone == null) continue;
+
+                    // Check if this payment crossed the milestone threshold
+                    if (newAmount >= milestone.getAmount()) {
+                        completedMilestones.add(milestone);
+                        MessageUtil.info("Player " + player.getName() + " completed milestone: " + milestone.getAmount());
+                        log.info("Player {} completed milestone: {}", player.getName(), milestone.getAmount());
+                    }
+                }
+
+                // Execute rewards for all completed milestones
+                for (MilestoneConfig milestone : completedMilestones) {
+                    try {
+                        rewardExecutor.executePlayerMilestoneRewards(player, milestone);
+                        cache.removePlayerMilestone(playerUUID, milestone);
+                    } catch (Exception e) {
+                        log.error("Error executing player milestone rewards for {}", player.getName(), e);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error checking player milestones for {}", player.getUniqueId(), e);
+            }
+        });
+    }
+
+    /**
+     * Check and process server milestone completion (async via FoliaLib)
+     */
+    public void checkServerMilestones(long newServerAmount) {
+        SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> {
+            try {
+                List<MilestoneConfig> activeMilestones = cache.getServerMilestones();
+
+                if (activeMilestones == null || activeMilestones.isEmpty()) {
+                    return;
+                }
+
+                List<MilestoneConfig> completedMilestones = new ArrayList<>();
+
+                for (MilestoneConfig milestone : activeMilestones) {
+                    if (milestone == null) continue;
+
+                    // Check if server crossed the milestone threshold
+                    if (newServerAmount >= milestone.getAmount()) {
+                        completedMilestones.add(milestone);
+                        MessageUtil.info("Server completed milestone: " + milestone.getAmount());
+                        log.info("Server completed milestone: {}", milestone.getAmount());
+                    }
+                }
+
+                // Execute rewards for all completed milestones
+                for (MilestoneConfig milestone : completedMilestones) {
+                    try {
+                        rewardExecutor.executeServerMilestoneRewards(milestone, COMMAND_DELAY_TICKS);
+                        cache.removeServerMilestone(milestone);
+                    } catch (Exception e) {
+                        log.error("Error executing server milestone rewards", e);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error checking server milestones", e);
+            }
+        });
+    }
+
+    /**
+     * Get player's active milestones
+     */
+    public List<MilestoneConfig> getPlayerMilestones(UUID playerUUID) {
+        return cache.getPlayerMilestones(playerUUID);
+    }
+
+    /**
+     * Get server's active milestones
+     */
+    public List<MilestoneConfig> getServerMilestones() {
+        return cache.getServerMilestones();
+    }
+
+    /**
+     * Get the milestone cache for advanced operations
+     */
+    public MilestoneCache getMilestoneCache() {
+        return cache;
+    }
+
+    /**
+     * Get cache statistics for monitoring
+     */
+    public Map<String, Object> getCacheStats() {
+        return cache.getStats();
+    }
 }
