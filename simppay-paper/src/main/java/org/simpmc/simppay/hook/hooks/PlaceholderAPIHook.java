@@ -4,11 +4,15 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.simpmc.simppay.SPPlugin;
+import org.simpmc.simppay.config.ConfigManager;
+import org.simpmc.simppay.config.types.CoinsConfig;
+import org.simpmc.simppay.config.types.MessageConfig;
 import org.simpmc.simppay.service.cache.CacheDataService;
 import org.simpmc.simppay.service.cache.LeaderboardEntry;
 import org.simpmc.simppay.service.cache.LeaderboardType;
 import org.simpmc.simppay.service.database.StreakService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -171,7 +175,24 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             StreakService streakService = new StreakService();
             return String.valueOf(streakService.getBestStreak(uuid));
         }
+        // %simppay_end_promo%
+        if (identifier.equalsIgnoreCase("end_promo")) {
+            CoinsConfig coinsConfig = ConfigManager.getInstance().getConfig(CoinsConfig.class);
+            MessageConfig messageConfig = ConfigManager.getInstance().getConfig(MessageConfig.class);
 
+            // check promo time
+            try {
+                LocalDateTime promoEndTime = LocalDateTime.parse(coinsConfig.promoEndTimeString, coinsConfig.formatter);
+                if (promoEndTime.isBefore(LocalDateTime.now())) {
+                    return messageConfig.noPromo;
+                } else {
+                    return coinsConfig.promoEndTimeString;
+                }
+            } catch (Exception e) {
+                // Parse lỗi thời gian -> coi như không có khuyến mãi
+                return messageConfig.noPromo;
+            }
+        }
         return null;
     }
 
