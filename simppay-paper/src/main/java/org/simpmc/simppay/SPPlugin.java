@@ -4,7 +4,6 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.tcoded.folialib.FoliaLib;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import lombok.Getter;
-import me.devnatan.inventoryframework.ViewFrame;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -21,10 +20,6 @@ import org.simpmc.simppay.listener.internal.player.BankPromptListener;
 import org.simpmc.simppay.listener.internal.player.NaplandauListener;
 import org.simpmc.simppay.listener.internal.player.SuccessHandlingListener;
 import org.simpmc.simppay.listener.internal.player.database.SuccessDatabaseHandlingListener;
-import org.simpmc.simppay.menu.PaymentHistoryView;
-import org.simpmc.simppay.menu.ServerPaymentHistoryView;
-import org.simpmc.simppay.menu.card.CardListView;
-import org.simpmc.simppay.menu.card.CardPriceView;
 import org.simpmc.simppay.service.*;
 import org.simpmc.simppay.service.cache.CacheDataService;
 
@@ -44,8 +39,6 @@ public final class SPPlugin extends JavaPlugin {
     @Getter
     private CommandHandler commandHandler;
     private boolean dev = false;
-    @Getter
-    private ViewFrame viewFrame;
     @Getter
     private boolean floodgateEnabled;
 
@@ -75,8 +68,12 @@ public final class SPPlugin extends JavaPlugin {
         PacketEvents.getAPI().init();
         registerMetrics();
         if (getServer().getPluginManager().getPlugin("floodgate") != null) {
-            floodgateEnabled = true;
-            getLogger().info("Enabled floodgate support");
+            floodgateEnabled = org.simpmc.simppay.util.FloodgateUtil.initialize();
+            if (floodgateEnabled) {
+                getLogger().info("Floodgate support enabled successfully");
+            } else {
+                getLogger().warning("Floodgate detected but initialization failed");
+            }
         }
         // Thanks CHATGPT, qua met r
         instance = this;
@@ -105,7 +102,6 @@ public final class SPPlugin extends JavaPlugin {
         new HookManager(this);
         registerListener();
         commandHandler.onEnable();
-        registerInventoryFramework();
     }
 
     @Override
@@ -161,18 +157,6 @@ public final class SPPlugin extends JavaPlugin {
 
     public Collection<IService> getServices() {
         return services;
-    }
-
-    private void registerInventoryFramework() {
-        viewFrame = ViewFrame.create(this)
-                .with(
-                        new CardListView(),
-                        new CardPriceView(),
-                        new PaymentHistoryView(),
-                        new ServerPaymentHistoryView()
-                )
-                .disableMetrics()
-                .register();
     }
 
     private void registerMetrics() {

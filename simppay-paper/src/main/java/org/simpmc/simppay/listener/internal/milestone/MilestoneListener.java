@@ -65,53 +65,70 @@ public class MilestoneListener implements Listener {
         MessageUtil.debug("Cleared cache bossbar and currentmilestones " + event.getPlayer().getName());
     }
 
+    /**
+     * Phase 3.1: Redesigned player milestone detection with persistence and retroactive completion.
+     * <p>
+     * Key improvements:
+     * - Checks ALL uncompleted milestones (retroactive completion support)
+     * - Database-backed tracking prevents duplicate rewards
+     * - Synchronous execution (no race conditions)
+     * - Works correctly for large payments that cross multiple milestones
+     */
     @EventHandler
     public void givePersonalMilestoneReward(PaymentSuccessEvent event) {
         MilestoneService milestoneService = SPPlugin.getService(MilestoneService.class);
         PlayerService playerService = SPPlugin.getService(DatabaseService.class).getPlayerService();
         PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
         SPPlayer player = playerService.findByUuid(event.getPlayerUUID());
-        double charged = event.getAmount();
 
-        List<MilestoneConfig> list = milestoneService.playerCurrentMilestones.getOrDefault(event.getPlayerUUID(), new ArrayList<>());
-        Iterator<MilestoneConfig> iter = list.iterator();
+        if (player == null) {
+            return;
+        }
 
-        while (iter.hasNext()) {
-            MilestoneConfig config = iter.next();
-
-            double playerNewBal = switch (config.getType()) {
+        // Check all milestone types for retroactive completion
+        for (MilestoneType type : MilestoneType.values()) {
+            // Get current player balance for this milestone type
+            double playerBalance = switch (type) {
                 case ALL -> paymentLogService.getPlayerTotalAmount(player);
                 case DAILY -> paymentLogService.getPlayerDailyAmount(player);
                 case WEEKLY -> paymentLogService.getPlayerWeeklyAmount(player);
                 case MONTHLY -> paymentLogService.getPlayerMonthlyAmount(player);
                 case YEARLY -> paymentLogService.getPlayerYearlyAmount(player);
-                default -> throw new IllegalStateException("Unexpected value: " + config.getType());
+                default -> 0;
             };
-            /*
-             * @param playerNewBal số tiền sau khi nạp
-             * @param charged số tiền nạp
-             */
-            if (playerNewBal >= config.amount && playerNewBal - charged < config.amount) {
-                // Milestone complete
-                for (String command : config.getCommands()) {
-                    SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(task2 -> {
+
+            // Get all uncompleted milestones for this type
+            List<MilestoneConfig> uncompletedMilestones = milestoneService.getUncompletedPlayerMilestones(event.getPlayerUUID(), type);
+
+            // Check each uncompleted milestone
+            for (MilestoneConfig config : uncompletedMilestones) {
+                // Simple check: if balance >= milestone amount, complete it
+                if (playerBalance >= config.amount) {
+                    // Mark as completed FIRST (prevents duplicate rewards if plugin crashes during execution)
+                    milestoneService.markPlayerMilestoneCompleted(event.getPlayerUUID(), type, config.amount);
+
+                    // Award rewards
+                    for (String command : config.getCommands()) {
                         String formattedCommand = PlaceholderAPI.setPlaceholders(Bukkit.getPlayer(event.getPlayerUUID()), command);
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), formattedCommand);
-                        MessageUtil.debug("Ran " + formattedCommand);
-                    }, 1);
+                        MessageUtil.debug("Ran milestone command: " + formattedCommand);
+                    }
+
+                    // Remove from in-memory cache
+                    List<MilestoneConfig> cachedMilestones = milestoneService.playerCurrentMilestones.get(event.getPlayerUUID());
+                    if (cachedMilestones != null) {
+                        cachedMilestones.removeIf(m -> m.type == type && m.amount == config.amount);
+                    }
+
+                    MessageUtil.debug("Player " + player.getName() + " completed milestone: " + type.name() + " " + config.amount);
+
+                    // Fire player milestone event
+                    SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
+                        SPPlugin.getInstance().getServer().getPluginManager().callEvent(new PlayerMilestoneEvent(event.getPlayerUUID()));
+                    });
                 }
-                // reset player current milestone
-                iter.remove();
-                MessageUtil.debug("Player " + player.getName() + " completed milestone " + config.amount);
-                MessageUtil.debug("Player " + player.getName() + " remaining milestone " + milestoneService.playerCurrentMilestones.get(event.getPlayerUUID()).size());
-                MessageUtil.debug("Player " + player.getName() + " removed " + config.toString());
-                // Call event for player milestone
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    SPPlugin.getInstance().getServer().getPluginManager().callEvent(new PlayerMilestoneEvent(event.getPlayerUUID()));
-                });
             }
         }
-
     }
 
     @EventHandler
@@ -156,69 +173,74 @@ public class MilestoneListener implements Listener {
     }
 
 
+    /**
+     * Phase 3.1: Redesigned server milestone detection with persistence and retroactive completion.
+     * <p>
+     * Same improvements as player milestones - retroactive, persistent, synchronous.
+     */
     @EventHandler
     public void giveServerMilestoneReward(PaymentSuccessEvent event) {
         MilestoneService milestoneService = SPPlugin.getService(MilestoneService.class);
         PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-        double charged = event.getAmount();
-        List<MilestoneConfig> list = milestoneService.serverCurrentMilestones;
-        if (list == null) {
-            return;
-        }
-        Iterator<MilestoneConfig> iter = list.iterator();
-        while (iter.hasNext()) {
-            MilestoneConfig config = iter.next();
-            double serverNewBal = switch (config.getType()) {
+
+        // Check all milestone types for retroactive completion
+        for (MilestoneType type : MilestoneType.values()) {
+            // Get current server balance for this milestone type
+            double serverBalance = switch (type) {
                 case ALL -> paymentLogService.getEntireServerAmount();
                 case DAILY -> paymentLogService.getEntireServerDailyAmount();
                 case WEEKLY -> paymentLogService.getEntireServerWeeklyAmount();
                 case MONTHLY -> paymentLogService.getEntireServerMonthlyAmount();
                 case YEARLY -> paymentLogService.getEntireServerYearlyAmount();
-                default -> throw new IllegalStateException("Unexpected value: " + config.getType());
+                default -> 0;
             };
-            /*
-             * @param playerNewBal số tiền sau khi nạp
-             * @param charged số tiền nạp
-             */
-            if (serverNewBal >= config.amount && serverNewBal - charged < config.amount) {
-                // Milestone complete
-                Deque<String> commands = new ArrayDeque<>();
-                for (String command : config.getCommands()) {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        String formattedCommand = PlaceholderAPI.setPlaceholders(player, command);
-                        commands.add(formattedCommand);
+
+            // Get all uncompleted milestones for this type
+            List<MilestoneConfig> uncompletedMilestones = milestoneService.getUncompletedServerMilestones(type);
+
+            // Check each uncompleted milestone
+            for (MilestoneConfig config : uncompletedMilestones) {
+                // Simple check: if balance >= milestone amount, complete it
+                if (serverBalance >= config.amount) {
+                    // Mark as completed FIRST (prevents duplicate rewards)
+                    milestoneService.markServerMilestoneCompleted(type, config.amount);
+
+                    // Award rewards to all online players (queued execution)
+                    Deque<String> commands = new ArrayDeque<>();
+                    for (String command : config.getCommands()) {
+                        for (Player player : Bukkit.getOnlinePlayers()) {
+                            String formattedCommand = PlaceholderAPI.setPlaceholders(player, command);
+                            commands.add(formattedCommand);
+                        }
                     }
+
+                    // Execute commands with delay (1 command per second)
+                    SPPlugin.getInstance().getFoliaLib().getScheduler().runTimer(task2 -> {
+                        if (commands.isEmpty()) {
+                            task2.cancel();
+                            return;
+                        }
+                        String command = commands.poll();
+                        if (command == null) {
+                            task2.cancel();
+                            return;
+                        }
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                        MessageUtil.debug("Ran server milestone command: " + command);
+                    }, 1, 20);
+
+                    // Remove from in-memory cache
+                    milestoneService.serverCurrentMilestones.removeIf(m -> m.type == type && m.amount == config.amount);
+
+                    MessageUtil.debug("Server completed milestone: " + type.name() + " " + config.amount);
+
+                    // Fire server milestone event
+                    SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
+                        SPPlugin.getInstance().getServer().getPluginManager().callEvent(new ServerMilestoneEvent(config));
+                    });
                 }
-
-                // queue commands to console using timer
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runTimer(task2 -> {
-                    if (commands.isEmpty()) {
-                        task2.cancel();
-                        return;
-                    }
-                    String command = commands.poll();
-                    if (command == null) {
-                        task2.cancel();
-                        return;
-                    }
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                    MessageUtil.debug("Ran " + command);
-
-                }, 1, 20);
-
-                // reset player current milestone
-                iter.remove();
-                MessageUtil.debug("Server completed milestone " + config.amount);
-                MessageUtil.debug("Server remaining milestone " + milestoneService.playerCurrentMilestones.get(event.getPlayerUUID()).size());
-                MessageUtil.debug("Server removed " + config.toString());
-                // Call event for player milestone
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    SPPlugin.getInstance().getServer().getPluginManager().callEvent(new ServerMilestoneEvent(config));
-                });
             }
         }
-
-
     }
 
     @EventHandler

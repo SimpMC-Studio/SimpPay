@@ -342,6 +342,86 @@ public class PaymentLogService {
         return (long) (bankingTotal + cardTotal);
     }
 
+    /**
+     * Batch query optimization - retrieves all time period amounts in optimized queries
+     * Reduces 5 separate database calls to more efficient batched processing
+     * @param playerId Player to query
+     * @return Map with keys: "total", "daily", "weekly", "monthly", "yearly"
+     */
+    public java.util.Map<String, Long> getPlayerAmountsBatch(SPPlayer playerId) {
+        java.util.Map<String, Long> amounts = new java.util.HashMap<>();
+
+        try {
+            long epoch = System.currentTimeMillis();
+
+            // Calculate all time boundaries
+            long startOfDay = CalendarUtil.getFirstHourOfDay(epoch);
+            long endOfDay = CalendarUtil.getLastHourOfDay(epoch);
+            long startOfWeek = CalendarUtil.getFirstDayOfWeek(epoch);
+            long endOfWeek = CalendarUtil.getLastDayOfWeek(epoch);
+            long startOfMonth = CalendarUtil.getFirstDayOfMonth(epoch);
+            long endOfMonth = CalendarUtil.getLastDayOfMonth(epoch);
+            long startOfYear = CalendarUtil.getFirstDayOfYear(epoch);
+            long endOfYear = CalendarUtil.getLastDayOfYear(epoch);
+
+            // Fetch ALL payments for this player once
+            List<BankingPayment> allBankingPayments = bankDao.queryBuilder()
+                    .where()
+                    .eq("player_uuid", playerId)
+                    .query();
+            List<CardPayment> allCardPayments = cardDao.queryBuilder()
+                    .where()
+                    .eq("player_uuid", playerId)
+                    .query();
+
+            // Calculate totals by filtering in-memory (much faster than 5 separate queries)
+            long total = 0;
+            long daily = 0;
+            long weekly = 0;
+            long monthly = 0;
+            long yearly = 0;
+
+            for (BankingPayment payment : allBankingPayments) {
+                long amount = (long) payment.getAmount();
+                long timestamp = payment.getTimestamp();
+                total += amount;
+
+                if (timestamp >= startOfDay && timestamp <= endOfDay) daily += amount;
+                if (timestamp >= startOfWeek && timestamp <= endOfWeek) weekly += amount;
+                if (timestamp >= startOfMonth && timestamp <= endOfMonth) monthly += amount;
+                if (timestamp >= startOfYear && timestamp <= endOfYear) yearly += amount;
+            }
+
+            for (CardPayment payment : allCardPayments) {
+                long amount = (long) payment.getAmount();
+                long timestamp = payment.getTimestamp();
+                total += amount;
+
+                if (timestamp >= startOfDay && timestamp <= endOfDay) daily += amount;
+                if (timestamp >= startOfWeek && timestamp <= endOfWeek) weekly += amount;
+                if (timestamp >= startOfMonth && timestamp <= endOfMonth) monthly += amount;
+                if (timestamp >= startOfYear && timestamp <= endOfYear) yearly += amount;
+            }
+
+            amounts.put("total", total);
+            amounts.put("daily", daily);
+            amounts.put("weekly", weekly);
+            amounts.put("monthly", monthly);
+            amounts.put("yearly", yearly);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Return zeros on error
+            amounts.put("total", 0L);
+            amounts.put("daily", 0L);
+            amounts.put("weekly", 0L);
+            amounts.put("monthly", 0L);
+            amounts.put("yearly", 0L);
+        }
+
+        return amounts;
+    }
+
     public void removePayment(Payment payment) {
         if (payment.getPaymentType() == PaymentType.BANKING) {
             removeBankingPayment(payment.getPaymentID());

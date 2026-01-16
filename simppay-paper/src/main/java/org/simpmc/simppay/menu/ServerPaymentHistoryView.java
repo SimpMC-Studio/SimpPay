@@ -1,13 +1,7 @@
 package org.simpmc.simppay.menu;
 
-import me.devnatan.inventoryframework.View;
-import me.devnatan.inventoryframework.ViewConfigBuilder;
-import me.devnatan.inventoryframework.component.Pagination;
-import me.devnatan.inventoryframework.context.Context;
-import me.devnatan.inventoryframework.context.RenderContext;
-import me.devnatan.inventoryframework.state.State;
-import net.kyori.adventure.text.Component;
-import org.jetbrains.annotations.NotNull;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.entity.Player;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.data.menu.DisplayItem;
@@ -18,118 +12,173 @@ import org.simpmc.simppay.database.dto.PaymentRecord;
 import org.simpmc.simppay.service.DatabaseService;
 import org.simpmc.simppay.util.CalendarUtil;
 import org.simpmc.simppay.util.MessageUtil;
+import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
+import xyz.xenondevs.invui.gui.PagedGui;
+import xyz.xenondevs.invui.item.Item;
+import xyz.xenondevs.invui.item.builder.ItemBuilder;
+import xyz.xenondevs.invui.item.impl.SimpleItem;
+import xyz.xenondevs.invui.item.impl.controlitem.PageItem;
+import xyz.xenondevs.invui.window.Window;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class ServerPaymentHistoryView extends View {
+/**
+ * Phase 6: InvUI Migration - Server Payment History View
+ * <p>
+ * Displays the entire server's payment history with pagination.
+ */
+public class ServerPaymentHistoryView {
+    private static final MiniMessage MM = MiniMessage.miniMessage();
 
+    /**
+     * Opens the server payment history menu for a player.
+     *
+     * @param player Player to show menu to
+     */
+    public static void openMenu(Player player) {
+        ServerPaymentHistoryMenuConfig config = ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class);
 
-    private final State<Pagination> paginationState = buildComputedAsyncPaginationState(this::fetchPaymentRecordsAsync)
-            .elementFactory((ctx, bukkitItemComponentBuilder, i, paymentRecord) -> {
-                ServerPaymentHistoryMenuConfig config = ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class);
-                MessageUtil.debug(paymentRecord.toString());
-                if (paymentRecord.getPaymentType() == PaymentType.CARD) {
-                    DisplayItem item = config.cardItem.clone().replaceStringInName("{amount}", value -> {
-                        String formattedValue = String.format("%,.0f", paymentRecord.getAmount());
-                        return formattedValue + "đ";
-                    }).replaceStringInName("{card_type}", paymentRecord.getTelco());
-                    List<String> lores = item.getLores().stream()
-                            .map(line ->
-                                    line.replace("{time}", CalendarUtil.getFormattedTimestamp(paymentRecord.getTimestamp().getTime()))
-                                            .replace("{serial}", paymentRecord.getSerial().orElse("0"))
-                                            .replace("{pin}", paymentRecord.getPin().orElse("0"))
-                                            .replace("{api}", paymentRecord.getProvider())
-                                            .replace("{transaction_id}", paymentRecord.getRefId())
-                                            .replace("{name}", paymentRecord.getPlayerName()
-                                            ))
-                            .toList();
-                    item.setLores(lores);
-                    bukkitItemComponentBuilder.withItem(item.getItemStack(ctx.getPlayer()));
-                }
+        // Async load payment records
+        CompletableFuture<List<PaymentRecord>> recordsFuture = fetchPaymentRecordsAsync();
 
-                if (paymentRecord.getPaymentType() == PaymentType.BANKING) {
-                    DisplayItem item = config.bankItem.clone().replaceStringInName("{amount}", value -> {
-                                String formattedValue = String.format("%,.0f", paymentRecord.getAmount());
-                                return formattedValue + "đ";
-                            })
-                            .replaceStringInName("{card_type}", paymentRecord.getTelco());
-                    List<String> lores = item.getLores().stream()
-                            .map(line ->
-                                    line.replace("{time}", CalendarUtil.getFormattedTimestamp(paymentRecord.getTimestamp().getTime()))
-                                            .replace("{api}", paymentRecord.getProvider())
-                                            .replace("{transaction_id}", paymentRecord.getRefId())
-                                            .replace("{name}", paymentRecord.getPlayerName()
-                                            ))
-                            .toList();
-                    item.setLores(lores);
-                    bukkitItemComponentBuilder.withItem(item.getItemStack(ctx.getPlayer()));
-                }
-            })
-            // TODO: inventory-framework API is broken for this, it is substring the title down to 32 letters, not sure why
-            // Paper also noted that the practice is poorly written for InventoryView#setTitle() which this calls anyways above 1.20 :
-            // i love and hate paper at the same time
-//            .onPageSwitch((ctx, pagination) -> {
-//                ServerPaymentHistoryMenuConfig config = ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class);
-//                // wtf shit
-//                String title = LegacyComponentSerializer.legacySection().serializeOr(
-//                        MessageUtil.getComponentParsed(
-//                                config.title.replace("{page}", String.valueOf(pagination.currentPage())), ctx.getPlayer()), "Null");
-//                ctx.updateTitleForPlayer(title, ctx.getPlayer());
-//            })
-            .build();
+        // Create loading placeholder
+        Item loadingItem = new SimpleItem(
+                new ItemBuilder(org.bukkit.Material.PAPER)
+                        .setDisplayName(mm("<gray>Loading server payment history..."))
+        );
 
-    @Override
-    public void onInit(ViewConfigBuilder config) {
-        config.cancelInteractions();
-        config.layout(ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class).layout.toArray(new String[0]));
-        Component title = MessageUtil.getComponentParsed(ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class).title, null);
-        config.title(title);
-    }
+        // Build GUI structure first (will be populated when data loads)
+        String[] layout = config.layout.toArray(new String[0]);
+        List<Item> paymentItems = new ArrayList<>();
+        paymentItems.add(loadingItem); // Temporary loading item
 
-//    @Override
-//    public void onOpen(@NotNull OpenContext open) {
-//        ServerPaymentHistoryMenuConfig menuConfig = ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class);
-//        String title = menuConfig.title;
-//        open.modifyConfig().title(MessageUtil.getComponentParsed(title, open.getPlayer())); // Title support papi
-//    }
+        PagedGui.Builder<Item> builder = PagedGui.items()
+                .setStructure(layout)
+                .addIngredient('O', xyz.xenondevs.invui.gui.structure.Markers.CONTENT_LIST_SLOT_HORIZONTAL)
+                .setContent(paymentItems);
 
-    @Override
-    public void onFirstRender(@NotNull RenderContext render) {
-        ServerPaymentHistoryMenuConfig menuConfig = ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class);
-        Pagination pagination = paginationState.get(render);
-
-        Map<Character, DisplayItem> displayedItems = menuConfig.displayItems;
-
-        for (Map.Entry<Character, DisplayItem> entry : displayedItems.entrySet()) {
+        // Add display items (borders, navigation buttons)
+        Map<Character, DisplayItem> displayItems = config.displayItems;
+        for (Map.Entry<Character, DisplayItem> entry : displayItems.entrySet()) {
             DisplayItem item = entry.getValue();
-            if (item.getRole() == RoleType.NONE) {
-                render.layoutSlot(entry.getKey(), entry.getValue().getItemStack());
-            }
+
             if (item.getRole() == RoleType.PREV_PAGE) {
-                render.layoutSlot(entry.getKey(), item.getItemStack())
-                        .displayIf(() -> pagination.currentPageIndex() != 0)
-                        .updateOnStateChange(paginationState)
-                        .onClick((ctx) -> {
-                            paginationState.get(ctx).back();
-                        });
-            }
-            if (item.getRole() == RoleType.NEXT_PAGE) {
-                render.layoutSlot(entry.getKey(), item.getItemStack())
-                        .displayIf(() -> pagination.currentPageIndex() < pagination.lastPageIndex())
-                        .updateOnStateChange(paginationState)
-                        .onClick((ctx) -> {
-                            paginationState.get(ctx).advance();
-                        });
+                builder.addIngredient(entry.getKey(), new PageItem(false) {
+                    @Override
+                    public xyz.xenondevs.invui.item.ItemProvider getItemProvider(PagedGui<?> gui) {
+                        return new xyz.xenondevs.invui.item.ItemWrapper(item.getItemStack(player));
+                    }
+                });
+            } else if (item.getRole() == RoleType.NEXT_PAGE) {
+                builder.addIngredient(entry.getKey(), new PageItem(true) {
+                    @Override
+                    public xyz.xenondevs.invui.item.ItemProvider getItemProvider(PagedGui<?> gui) {
+                        return new xyz.xenondevs.invui.item.ItemWrapper(item.getItemStack(player));
+                    }
+                });
+            } else {
+                builder.addIngredient(entry.getKey(), item.getItemStack(player));
             }
         }
+
+        PagedGui<Item> gui = builder.build();
+
+        // Open window
+        Window window = Window.single()
+                .setViewer(player)
+                .setTitle(mm(config.title))
+                .setGui(gui)
+                .build();
+        window.open();
+
+        // Load data asynchronously and update GUI
+        recordsFuture.thenAccept(records -> {
+            paymentItems.clear();
+
+            if (records.isEmpty()) {
+                paymentItems.add(new SimpleItem(
+                        new ItemBuilder(org.bukkit.Material.BARRIER)
+                                .setDisplayName(mm("<red>No payment history found"))
+                ));
+            } else {
+                for (PaymentRecord record : records) {
+                    paymentItems.add(createPaymentItem(player, record, config));
+                }
+            }
+
+            // Force GUI refresh on main thread
+            SPPlugin.getInstance().getFoliaLib().getScheduler().runAtEntity(player, task -> {
+                if (window.isOpen()) {
+                    gui.setContent(paymentItems);
+                }
+            });
+        });
     }
 
-    private CompletableFuture<List<PaymentRecord>> fetchPaymentRecordsAsync(Context context) {
-        return CompletableFuture.supplyAsync(() -> {
-            List<PaymentRecord> paymentRecords = SPPlugin.getService(DatabaseService.class).getPaymentLogService().getEntireServerPayments();
-            return paymentRecords;
-        });
+    /**
+     * Creates a payment item for a PaymentRecord.
+     */
+    private static Item createPaymentItem(Player player, PaymentRecord record, ServerPaymentHistoryMenuConfig config) {
+        DisplayItem itemConfig;
+        List<String> lore;
+
+        if (record.getPaymentType() == PaymentType.CARD) {
+            itemConfig = config.cardItem.clone()
+                    .replaceStringInName("{amount}", String.format("%,.0f", record.getAmount()) + "đ")
+                    .replaceStringInName("{card_type}", record.getTelco());
+
+            lore = itemConfig.getLores().stream()
+                    .map(line -> line
+                            .replace("{time}", CalendarUtil.getFormattedTimestamp(record.getTimestamp().getTime()))
+                            .replace("{serial}", record.getSerial().orElse("0"))
+                            .replace("{pin}", record.getPin().orElse("0"))
+                            .replace("{api}", record.getProvider())
+                            .replace("{transaction_id}", record.getRefId())
+                            .replace("{name}", record.getPlayerName()))
+                    .toList();
+        } else { // BANKING
+            itemConfig = config.bankItem.clone()
+                    .replaceStringInName("{amount}", String.format("%,.0f", record.getAmount()) + "đ");
+
+            lore = itemConfig.getLores().stream()
+                    .map(line -> line
+                            .replace("{time}", CalendarUtil.getFormattedTimestamp(record.getTimestamp().getTime()))
+                            .replace("{api}", record.getProvider())
+                            .replace("{transaction_id}", record.getRefId())
+                            .replace("{name}", record.getPlayerName()))
+                    .toList();
+        }
+
+        ItemBuilder builder = new ItemBuilder(itemConfig.getMaterial())
+                .setDisplayName(mm(itemConfig.getName()));
+
+        for (String loreLine : lore) {
+            builder.addLoreLines(mm(loreLine));
+        }
+
+        return new SimpleItem(builder);
+    }
+
+    /**
+     * Fetches all server payment records asynchronously.
+     */
+    private static CompletableFuture<List<PaymentRecord>> fetchPaymentRecordsAsync() {
+        return CompletableFuture.supplyAsync(() ->
+                SPPlugin.getService(DatabaseService.class)
+                        .getPaymentLogService()
+                        .getEntireServerPayments()
+        );
+    }
+
+    /**
+     * Helper method to create AdventureComponentWrapper from MiniMessage string.
+     */
+    private static AdventureComponentWrapper mm(String miniMessage) {
+        return new AdventureComponentWrapper(
+                MessageUtil.getComponentParsed(miniMessage, null)
+        );
     }
 }

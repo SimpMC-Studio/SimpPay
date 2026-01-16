@@ -13,6 +13,7 @@ import org.simpmc.simppay.config.serializers.KeySerializer;
 import org.simpmc.simppay.config.serializers.SoundComponentSerializer;
 import org.simpmc.simppay.config.types.*;
 import org.simpmc.simppay.config.types.banking.PayosConfig;
+import org.simpmc.simppay.config.types.banking.SepayConfig;
 import org.simpmc.simppay.config.types.banking.Web2mConfig;
 import org.simpmc.simppay.config.types.card.*;
 import org.simpmc.simppay.config.types.menu.PaymentHistoryMenuConfig;
@@ -38,6 +39,7 @@ public class ConfigManager {
     private final List<Class<?>> configClasses = List.of(
             // TODO: ClassGraph auto scan ?
             PayosConfig.class,
+            SepayConfig.class,  // Phase 4: Sepay integration
             ThesieutocConfig.class,
             CardPinMenuConfig.class,
             CardSerialMenuConfig.class,
@@ -51,8 +53,11 @@ public class ConfigManager {
             MainConfig.class,
             MessageConfig.class,
             ServerPaymentHistoryMenuConfig.class,
-            MocNapConfig.class,
-            MocNapServerConfig.class,
+            MocNapConfig.class,  // DEPRECATED - use MilestonesPlayerConfig instead
+            MocNapServerConfig.class,  // DEPRECATED - use MilestonesServerConfig instead
+            MilestonesPlayerConfig.class,  // Phase 3.2: New human-readable format
+            MilestonesServerConfig.class,  // Phase 3.2: New human-readable format
+            StreakConfig.class,  // Phase 5: Streak system
             NaplandauConfig.class,
             Gachthe1sConfig.class,
             Card2KConfig.class,

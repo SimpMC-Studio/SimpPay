@@ -22,6 +22,12 @@ public class PlayerStreakPayment {
     @DatabaseField(columnName = "current_streak")
     private int currentStreak;
 
+    @DatabaseField(columnName = "best_streak")
+    private int bestStreak;
+
+    @DatabaseField(columnName = "last_reward_tier")
+    private int lastRewardTier;
+
     @DatabaseField(columnName = "claimed_today")
     private boolean claimedToday;
 }

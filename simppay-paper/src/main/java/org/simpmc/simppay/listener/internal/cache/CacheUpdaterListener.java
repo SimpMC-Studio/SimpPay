@@ -10,9 +10,18 @@ import org.simpmc.simppay.service.DatabaseService;
 import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.service.cache.CacheDataService;
 
+/**
+ * Cache Updater Listener - Phase 2.1 Redesign
+ * <p>
+ * Key Changes:
+ * - Removed queue-based updates (no more addPlayerToQueue)
+ * - Synchronous cache updates on payment events (real-time)
+ * - Async server cache updates remain for performance
+ */
 public class CacheUpdaterListener implements Listener {
     public CacheUpdaterListener(SPPlugin plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        // Initialize server cache on startup
         plugin.getFoliaLib().getScheduler().runLaterAsync(() -> {
                     SPPlugin.getService(CacheDataService.class).updateServerDataCache();
                 }, 1
@@ -22,8 +31,11 @@ public class CacheUpdaterListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         SPPlugin plugin = SPPlugin.getInstance();
-        plugin.getFoliaLib().getScheduler().runAsync(task2 -> SPPlugin.getService(DatabaseService.class).getPlayerService().createPlayer(event.getPlayer()));
-        SPPlugin.getService(CacheDataService.class).addPlayerToQueue(event.getPlayer().getUniqueId());
+        plugin.getFoliaLib().getScheduler().runAsync(task2 -> {
+            SPPlugin.getService(DatabaseService.class).getPlayerService().createPlayer(event.getPlayer());
+            // Load player cache asynchronously on join (not critical path)
+            SPPlugin.getService(CacheDataService.class).updatePlayerCacheSync(event.getPlayer().getUniqueId());
+        });
     }
 
     @EventHandler
@@ -36,7 +48,13 @@ public class CacheUpdaterListener implements Listener {
     @EventHandler
     public void onPaymentSuccess(PaymentSuccessEvent event) {
         SPPlugin plugin = SPPlugin.getInstance();
-        SPPlugin.getService(CacheDataService.class).addPlayerToQueue(event.getPlayerUUID());
-        plugin.getFoliaLib().getScheduler().runAsync(task2 -> SPPlugin.getService(CacheDataService.class).updateServerDataCache());
+
+        // SYNCHRONOUS player cache update - NO DELAY, real-time milestone and placeholder updates!
+        SPPlugin.getService(CacheDataService.class).updatePlayerCacheSync(event.getPlayerUUID());
+
+        // Async server cache update (less critical, can be delayed slightly)
+        plugin.getFoliaLib().getScheduler().runAsync(task2 -> {
+            SPPlugin.getService(CacheDataService.class).updateServerDataCache();
+        });
     }
 }

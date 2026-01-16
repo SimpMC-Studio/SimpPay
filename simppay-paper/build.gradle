@@ -7,15 +7,14 @@ plugins {
 version = getRootProject().version
 dependencies {
     // Include the common module
-    implementation project(':simppay-api')
     implementation project(':simppay-converter')
 
     compileOnly 'org.projectlombok:lombok:1.18.38'
     annotationProcessor 'org.projectlombok:lombok:1.18.38'
     compileOnly 'com.h2database:h2:2.3.232'
-    compileOnly "io.papermc.paper:paper-api:1.21.7-R0.1-SNAPSHOT"
+    compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly 'com.j256.ormlite:ormlite-jdbc:6.1'
-
+    compileOnly 'xyz.xenondevs.invui:invui:1.49'
     compileOnly 'org.black_ixx:playerpoints:3.3.0'
 
     compileOnly('me.clip:placeholderapi:2.11.6') {
@@ -24,10 +23,10 @@ dependencies {
     compileOnly('org.geysermc.floodgate:api:2.2.4-SNAPSHOT')
     compileOnly("su.nightexpress.coinsengine:CoinsEngine:2.5.0")
     compileOnly("com.squareup.okhttp3:okhttp:5.0.0-alpha.12")
-    implementation("de.exlll:configlib-paper:4.6.0") {
+    implementation("de.exlll:configlib-paper:4.8.0") {
         exclude group: 'org.yaml', module: 'snakeyaml-engine'
     }
-    implementation "dev.jorel:commandapi-bukkit-shade:10.1.2"
+    implementation "dev.jorel:commandapi-paper-shade:11.1.0"
     implementation("com.tcoded:FoliaLib:0.5.1")
     implementation('me.devnatan:inventory-framework-platform-bukkit:3.5.0')
     implementation('me.devnatan:inventory-framework-platform-paper:3.5.0')
@@ -37,7 +36,7 @@ dependencies {
 
 shadowJar {
     // Configure name & output location
-    archiveBaseName.set("SimpPay-Paper")
+    archiveBaseName.set("SimpPay")
     archiveVersion.set(version)
     archiveClassifier.set('')
     if (System.getenv("OUTPUT_DIR") != null) {

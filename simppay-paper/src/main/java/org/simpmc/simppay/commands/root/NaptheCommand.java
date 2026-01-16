@@ -27,7 +27,7 @@ public class NaptheCommand {
                         }
                         return;
                     }
-                    SPPlugin.getInstance().getViewFrame().open(CardListView.class, player);
+                    CardListView.openMenu(player);
                 })
                 .register();
     }

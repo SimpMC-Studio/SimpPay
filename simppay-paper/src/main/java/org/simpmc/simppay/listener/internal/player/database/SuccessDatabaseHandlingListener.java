@@ -6,12 +6,18 @@ import org.bukkit.event.Listener;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.event.PaymentSuccessEvent;
 import org.simpmc.simppay.service.DatabaseService;
-import org.simpmc.simppay.service.cache.CacheDataService;
+import org.simpmc.simppay.service.database.StreakService;
 
-// fking ass class name, longgg
+/**
+ * Phase 2.1: Removed updateQueue method - cache updates now handled synchronously in CacheUpdaterListener
+ * Phase 5: Added streak update on payment success
+ */
 public class SuccessDatabaseHandlingListener implements Listener {
+    private final StreakService streakService;
+
     public SuccessDatabaseHandlingListener(SPPlugin plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.streakService = new StreakService();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -20,15 +26,12 @@ public class SuccessDatabaseHandlingListener implements Listener {
 
         plugin.getFoliaLib().getScheduler().runAsync(task -> {
             SPPlugin.getService(DatabaseService.class).getPaymentLogService().addPayment(event.getPayment());
+
+            // Phase 5: Update player streak
+            streakService.updateStreak(event.getPlayerUUID());
         });
     }
 
-    @EventHandler
-    public void updateQueue(PaymentSuccessEvent event) {
-        SPPlugin plugin = SPPlugin.getInstance();
-
-        plugin.getFoliaLib().getScheduler().runAsync(task -> {
-            SPPlugin.getService(CacheDataService.class).addPlayerToQueue(event.getPlayerUUID());
-        });
-    }
+    // Note: Queue-based cache update method removed in Phase 2.1
+    // Cache now updates synchronously in CacheUpdaterListener
 }

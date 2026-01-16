@@ -2,11 +2,13 @@ package org.simpmc.simppay.handler.data;
 
 import org.simpmc.simppay.handler.BankHandler;
 import org.simpmc.simppay.handler.banking.payos.PayosHandler;
+import org.simpmc.simppay.handler.banking.sepay.SepayHandler;
 import org.simpmc.simppay.handler.banking.web2m.W2MHandler;
 
 public enum BankAPI {
     PAYOS(PayosHandler.class),
-    WEB2M(W2MHandler.class);
+    WEB2M(W2MHandler.class),
+    SEPAY(SepayHandler.class); // Phase 4: Sepay integration
 
     public final Class<? extends BankHandler> handlerClass;
 

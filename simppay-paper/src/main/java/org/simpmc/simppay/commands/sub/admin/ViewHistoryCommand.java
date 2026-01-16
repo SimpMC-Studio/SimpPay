@@ -27,7 +27,7 @@ public class ViewHistoryCommand {
         String playerName = (String) args.getOptional("player").orElse(null);
         if (playerName == null) {
             // view entire server history
-            SPPlugin.getInstance().getViewFrame().open(ServerPaymentHistoryView.class, player);
+            ServerPaymentHistoryView.openMenu(player);
             return;
         }
 //        if (FloodgateApi.getInstance().isFloodgateId(player.getUniqueId())) {
@@ -41,6 +41,6 @@ public class ViewHistoryCommand {
             MessageUtil.sendMessage(player, messageConfig.playerNotFound.replace("{name}", playerName));
             return;
         }
-        SPPlugin.getInstance().getViewFrame().open(PaymentHistoryView.class, player, playerName);
+        PaymentHistoryView.openMenu(player, playerName);
     }
 }

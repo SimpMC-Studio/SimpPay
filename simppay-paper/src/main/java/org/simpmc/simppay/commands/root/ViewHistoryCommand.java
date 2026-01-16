@@ -27,7 +27,7 @@ public class ViewHistoryCommand {
                         }
                         return;
                     }
-                    SPPlugin.getInstance().getViewFrame().open(PaymentHistoryView.class, player);
+                    PaymentHistoryView.openMenu(player, null);
                 })
                 .register();
     }

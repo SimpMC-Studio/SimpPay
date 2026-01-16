@@ -1,13 +1,7 @@
 package org.simpmc.simppay.menu.card;
 
-import me.devnatan.inventoryframework.View;
-import me.devnatan.inventoryframework.ViewConfigBuilder;
-import me.devnatan.inventoryframework.component.Pagination;
-import me.devnatan.inventoryframework.context.OpenContext;
-import me.devnatan.inventoryframework.context.RenderContext;
-import me.devnatan.inventoryframework.state.State;
-import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.entity.Player;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.data.menu.DisplayItem;
 import org.simpmc.simppay.config.types.data.menu.RoleType;
@@ -17,77 +11,100 @@ import org.simpmc.simppay.data.card.CardType;
 import org.simpmc.simppay.menu.card.anvil.CardSerialInput;
 import org.simpmc.simppay.model.detail.CardDetail;
 import org.simpmc.simppay.util.MessageUtil;
+import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
+import xyz.xenondevs.invui.gui.PagedGui;
+import xyz.xenondevs.invui.item.Item;
+import xyz.xenondevs.invui.item.builder.ItemBuilder;
+import xyz.xenondevs.invui.item.impl.SimpleItem;
+import xyz.xenondevs.invui.window.Window;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-public class CardPriceView extends View {
+/**
+ * Phase 6: InvUI Migration - Card Price View
+ * <p>
+ * Displays available card prices for a selected card type.
+ */
+public class CardPriceView {
+    private static final MiniMessage MM = MiniMessage.miniMessage();
 
+    /**
+     * Opens the card price selection menu for a player.
+     *
+     * @param player   Player to show menu to
+     * @param cardType Selected card type
+     */
+    public static void openMenu(Player player, CardType cardType) {
+        CardPriceMenuConfig config = ConfigManager.getInstance().getConfig(CardPriceMenuConfig.class);
 
-    private final State<Pagination> paginationState = buildLazyPaginationState(context -> {
-        return CardPrice.getAllCardPrices();
+        // Create items for each card price
+        List<Item> priceItems = new ArrayList<>();
+        for (String priceString : CardPrice.getAllCardPrices()) {
+            String formattedPrice = getFormattedPrice(priceString);
+            DisplayItem priceItemConfig = config.priceItem.clone()
+                    .replaceStringInName("{price_name}", formattedPrice);
 
-    }).elementFactory((ctx, bukkitItemComponentBuilder, i, price) -> {
-        String priceTag = getFormattedPrice(price);
-        ItemStack item = ConfigManager.getInstance()
-                .getConfig(CardPriceMenuConfig.class)
-                .priceItem.clone().replaceStringInName("{price_name}", priceTag)
-                .getItemStack(ctx.getPlayer());
-        bukkitItemComponentBuilder.withItem(item).onClick(click -> {
-            // get current card session and add data, then move to next menu
-            CardType cardType = (CardType) click.getInitialData();
-            CardDetail detail = CardDetail.builder()
-                    .type(cardType)
-                    .price(CardPrice.fromString(price))
-                    .build();
-            click.closeForPlayer();
-            new CardSerialInput(click.getPlayer(), detail);
-        });
+            priceItems.add(new SimpleItem(
+                    new ItemBuilder(priceItemConfig.getMaterial())
+                            .setDisplayName(mm(priceItemConfig.getName()))
+                            .addLoreLines(priceItemConfig.getLores().stream()
+                                    .map(CardPriceView::mm)
+                                    .toArray(AdventureComponentWrapper[]::new)),
+                    click -> {
+                        // Build card detail and open serial input
+                        CardDetail detail = CardDetail.builder()
+                                .type(cardType)
+                                .price(CardPrice.fromString(priceString))
+                                .build();
 
-    }).build();
+                        click.getPlayer().closeInventory();
+                        new CardSerialInput(click.getPlayer(), detail);
+                    }
+            ));
+        }
 
+        // Build the PagedGui with all ingredients
+        String[] layout = config.layout.toArray(new String[0]);
+        PagedGui.Builder<Item> builder = PagedGui.items()
+                .setStructure(layout)
+                .addIngredient('O', xyz.xenondevs.invui.gui.structure.Markers.CONTENT_LIST_SLOT_HORIZONTAL)
+                .setContent(priceItems);
 
-    @Override
-    public void onInit(ViewConfigBuilder config) {
-        config.cancelInteractions();
-        config.layout(ConfigManager.getInstance().getConfig(CardPriceMenuConfig.class).layout.toArray(new String[0]));
-    }
-
-    @Override
-    public void onOpen(@NotNull OpenContext open) {
-        CardPriceMenuConfig menuConfig = ConfigManager.getInstance().getConfig(CardPriceMenuConfig.class);
-        Pagination pagination = paginationState.get(open);
-        open.modifyConfig().title(MessageUtil.getComponentParsed(menuConfig.title, open.getPlayer())); // Title support papi
-    }
-
-    @Override
-    public void onFirstRender(@NotNull RenderContext render) {
-        CardPriceMenuConfig menuConfig = ConfigManager.getInstance().getConfig(CardPriceMenuConfig.class);
-
-        Map<Character, DisplayItem> displayedItems = menuConfig.displayItems;
-
-        for (Map.Entry<Character, DisplayItem> entry : displayedItems.entrySet()) {
+        // Add display items (borders, decorations)
+        Map<Character, DisplayItem> displayItems = config.displayItems;
+        for (Map.Entry<Character, DisplayItem> entry : displayItems.entrySet()) {
             DisplayItem item = entry.getValue();
             if (item.getRole() == RoleType.NONE) {
-                render.layoutSlot(entry.getKey(), entry.getValue().getItemStack(render.getPlayer()));
-            }
-            if (item.getRole() == RoleType.PREV_PAGE) {
-                render.layoutSlot(entry.getKey(), item.getItemStack(render.getPlayer()))
-                        .updateOnStateChange(paginationState)
-                        .onClick((ctx) -> {
-                            paginationState.get(ctx).back();
-                        });
-            }
-            if (item.getRole() == RoleType.NEXT_PAGE) {
-                render.layoutSlot(entry.getKey(), item.getItemStack(render.getPlayer()))
-                        .updateOnStateChange(paginationState)
-                        .onClick((ctx) -> {
-                            paginationState.get(ctx).advance();
-                        });
+                builder.addIngredient(entry.getKey(), item.getItemStack(player));
             }
         }
+
+        PagedGui<Item> gui = builder.build();
+
+        // Open window
+        Window.single()
+                .setViewer(player)
+                .setTitle(mm(config.title))
+                .setGui(gui)
+                .build()
+                .open();
     }
 
-    public String getFormattedPrice(String price) {
+    /**
+     * Formats a price string with thousand separators.
+     */
+    private static String getFormattedPrice(String price) {
         return String.format("%,d", Integer.valueOf(price)) + "đ";
+    }
+
+    /**
+     * Helper method to create AdventureComponentWrapper from MiniMessage string.
+     */
+    private static AdventureComponentWrapper mm(String miniMessage) {
+        return new AdventureComponentWrapper(
+                MessageUtil.getComponentParsed(miniMessage, null)
+        );
     }
 }

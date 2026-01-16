@@ -141,5 +141,5 @@ gradle-app.setting
 ### Gradle Patch ###
 # Java heap dump
 *.hprof
-
+tmpclaude-*
 # End of https://www.toptal.com/developers/gitignore/api/gradle,java,intellij+all

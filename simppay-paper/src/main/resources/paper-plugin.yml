@@ -1,0 +1,27 @@
+name: SimpPay
+version: '$version'
+main: org.simpmc.simppay.SPPlugin
+api-version: '1.21'
+author: 'typical.smc'
+description: 'Payment solution for Vietnamese Minecraft Servers'
+website: 'https://github.com/SimpMC-Studio/SimpPay'
+folia-supported: true
+loader: org.simpmc.simppay.SimpPayLoader
+dependencies:
+  server:
+    PlaceholderAPI:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    floodgate:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlayerPoints:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    CoinsEngine:
+      load: BEFORE
+      required: false
+      join-classpath: true
