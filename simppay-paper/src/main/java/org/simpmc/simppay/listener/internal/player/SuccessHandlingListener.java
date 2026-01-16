@@ -21,7 +21,9 @@ import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.util.MessageUtil;
 import org.simpmc.simppay.util.SoundUtil;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -132,8 +134,33 @@ public class SuccessHandlingListener implements Listener {
             }
         }
         if (event.getPaymentType() == PaymentType.BANKING) {
-            // TODO: Add support for banking commands, havent figure out the logic for it yet
-//            MessageUtil.sendMessage(player, config.successPayment.replace("<amount>", String.valueOf(event.getAmount())));
+            BankingDetail bankingDetail = (BankingDetail) event.getPaymentDetail();
+            long amount = (long) bankingDetail.getAmount();
+            String amountFormatted = String.format("%,.0f", bankingDetail.getAmount());
+            String refId = bankingDetail.getRefID() != null ? bankingDetail.getRefID() : "N/A";
+
+            CoinsConfig coinsConfig = plugin.getConfigManager().getConfig(CoinsConfig.class);
+
+            // Collect all commands where threshold <= amount
+            List<String> commandsToRun = new ArrayList<>();
+            for (Map.Entry<Long, List<String>> entry : coinsConfig.bankingToCommands.entrySet()) {
+                if (amount >= entry.getKey()) {
+                    commandsToRun.addAll(entry.getValue());
+                }
+            }
+
+            if (!commandsToRun.isEmpty() && player != null) {
+                plugin.getFoliaLib().getScheduler().runLater(task -> {
+                    for (String command : commandsToRun) {
+                        String processed = command
+                                .replace("<amount>", String.valueOf(amount))
+                                .replace("<amount_formatted>", amountFormatted)
+                                .replace("<ref_id>", refId);
+                        String parsed = PlaceholderAPI.setPlaceholders(player, processed);
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
+                    }
+                }, 1);
+            }
         }
     }
 

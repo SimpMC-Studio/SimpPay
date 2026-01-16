@@ -14,15 +14,15 @@ import org.simpmc.simppay.model.detail.CardDetail;
 
 import java.util.UUID;
 
-public class FakeCardCommand {
+public class DebugCardCommand {
 
     public static CommandAPICommand commandCreate() {
-        return new CommandAPICommand("fakecard")
-                .withPermission("simppay.admin.fakecard")
+        return new CommandAPICommand("debugcard")
+                .withPermission("simppay.admin.debugcard")
                 .withArguments(
                         new BooleanArgument("wrongPrice")
                 )
-                .executesPlayer(FakeCardCommand::execute);
+                .executesPlayer(DebugCardCommand::execute);
     }
 
     public static void execute(Player player, CommandArguments args) {

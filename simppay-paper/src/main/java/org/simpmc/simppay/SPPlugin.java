@@ -56,12 +56,12 @@ public final class SPPlugin extends JavaPlugin {
     @Override
     public void onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+        PacketEvents.getAPI().getSettings().checkForUpdates(false);
         PacketEvents.getAPI().load();
         commandHandler = new CommandHandler(this);
         commandHandler.onLoad();
     }
 
-    // TODO: A fking mess, please fix
     @Override
     public void onEnable() {
         // Reset config
@@ -75,7 +75,6 @@ public final class SPPlugin extends JavaPlugin {
                 getLogger().warning("Floodgate detected but initialization failed");
             }
         }
-        // Thanks CHATGPT, qua met r
         instance = this;
         foliaLib = new FoliaLib(this);
         // Plugin startup logic

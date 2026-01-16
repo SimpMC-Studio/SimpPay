@@ -45,6 +45,23 @@ public class CoinsConfig {
             CardPrice._500K, List.of("tell %player_name% Bạn vừa nạp 500k"),
             CardPrice._1000K, List.of("tell %player_name% Bạn vừa nạp 1000k")
     );
+    @Comment({
+            "Lệnh chạy khi nạp chuyển khoản thành công, theo từng mức tiền",
+            "Key: Số tiền tối thiểu để chạy lệnh (VD: 50000 = chạy khi nạp >= 50,000đ)",
+            "Value: Danh sách lệnh sẽ chạy",
+            "",
+            "Placeholder hỗ trợ:",
+            "  <amount> - Số tiền nạp (VD: 50000)",
+            "  <amount_formatted> - Số tiền có dấu phẩy (VD: 50,000)",
+            "  <ref_id> - Mã giao dịch banking",
+            "  %player_name% - Tên người chơi (PlaceholderAPI)",
+            "  Tất cả placeholder của PlaceholderAPI đều được hỗ trợ",
+            "",
+            "VD: Nạp 100,000đ sẽ chạy tất cả lệnh có key <= 100000"
+    })
+    public Map<Long, List<String>> bankingToCommands = Map.of(
+            0L, List.of("say %player_name% vừa nạp <amount_formatted>đ qua chuyển khoản!")
+    );
     @Comment({"Công thức tính xu được nhận khi nạp chuyển khoản",
             "- Số xu nhận được = Số xu tiêu chuẩn + Số xu được nhận thêm + (Số tiền nạp chuyển khoản / 1000) × Khuyến mãi)",
             "Trong đó:",

@@ -10,8 +10,8 @@ public class SimpPayAdminCommand {
                 .withSubcommands(
                         ReloadCommand.commandCreate(),
                         ViewHistoryCommand.commandCreate(),
-                        FakeBankCommand.commandCreate(),
-                        FakeCardCommand.commandCreate(),
+                        RechargeBankCommand.commandCreate(),
+                        DebugCardCommand.commandCreate(),
                         DeletePlayerCommand.commandCreate(),
                         ReloadServerMilestoneCommand.commandCreate(),
                         ReloadPlayerMilestoneCommand.commandCreate()

@@ -12,14 +12,14 @@ import org.simpmc.simppay.model.detail.BankingDetail;
 
 import java.util.UUID;
 
-public class FakeBankCommand {
+public class RechargeBankCommand {
     public static CommandAPICommand commandCreate() {
-        return new CommandAPICommand("fakebank")
-                .withPermission("simppay.admin.fakebank")
+        return new CommandAPICommand("rechargebank")
+                .withPermission("simppay.admin.rechargebank")
                 .withArguments(
                         new LongArgument("amount")
                 )
-                .executesPlayer(FakeBankCommand::execute);
+                .executesPlayer(RechargeBankCommand::execute);
     }
 
     public static void execute(Player player, CommandArguments args) {

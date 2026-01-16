@@ -1,9 +1,6 @@
 package org.simpmc.simppay.config;
 
-import de.exlll.configlib.ConfigLib;
-import de.exlll.configlib.NameFormatters;
-import de.exlll.configlib.YamlConfigurationProperties;
-import de.exlll.configlib.YamlConfigurationStore;
+import de.exlll.configlib.*;
 import lombok.Getter;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
@@ -30,6 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static de.exlll.configlib.DeserializationCoercionType.BOOLEAN_TO_STRING;
+import static de.exlll.configlib.DeserializationCoercionType.NUMBER_TO_STRING;
+
 public class ConfigManager {
     // holds loaded config instances
     private static final Map<Class<?>, Object> configs = new HashMap<>();
@@ -53,8 +53,6 @@ public class ConfigManager {
             MainConfig.class,
             MessageConfig.class,
             ServerPaymentHistoryMenuConfig.class,
-            MocNapConfig.class,  // DEPRECATED - use MilestonesPlayerConfig instead
-            MocNapServerConfig.class,  // DEPRECATED - use MilestonesServerConfig instead
             MilestonesPlayerConfig.class,  // Phase 3.2: New human-readable format
             MilestonesServerConfig.class,  // Phase 3.2: New human-readable format
             StreakConfig.class,  // Phase 5: Streak system
@@ -70,11 +68,11 @@ public class ConfigManager {
     private final YamlConfigurationProperties properties = ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
             .addSerializer(Key.class, new KeySerializer())
             .addSerializer(Sound.class, new SoundComponentSerializer())
+            .setDeserializationCoercionTypes(BOOLEAN_TO_STRING, NUMBER_TO_STRING)
             .setNameFormatter(NameFormatters.LOWER_KEBAB_CASE)
             .header("""
                     SimpPay @ 2025
-                    Made by typical.smc, used for SimpMC Network
-                    Shared publicly on github.com/SimpMC-Studio/SimpPay
+                    Made by typical.smc
                     """)
             .build();
 
