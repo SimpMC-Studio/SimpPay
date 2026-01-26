@@ -51,7 +51,6 @@ public class CardListView {
                                     .toArray(AdventureComponentWrapper[]::new)),
                     click -> {
                         // Open card price selection menu
-                        click.getPlayer().closeInventory();
                         CardPriceView.openMenu(click.getPlayer(), cardType);
                     }
             ));

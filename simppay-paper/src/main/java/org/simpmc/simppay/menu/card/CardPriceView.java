@@ -59,7 +59,6 @@ public class CardPriceView {
                                 .price(CardPrice.fromString(priceString))
                                 .build();
 
-                        click.getPlayer().closeInventory();
                         new CardSerialInput(click.getPlayer(), detail);
                     }
             ));

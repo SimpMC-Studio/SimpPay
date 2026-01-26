@@ -24,7 +24,22 @@ SimpPay is a Minecraft plugin for automated Vietnamese payment processing (QR ba
 - ConfigLib → `me.typical.lib.configlib`
 - CommandAPI → `me.typical.lib.commandapi`
 - FoliaLib → `me.typical.lib.folialib`
-- AnvilGUI → `me.typical.lib.anvilgui`
+
+**Paper Plugin Loader:** Uses `SimpPayLoader` (implements `PluginLoader`) to download dependencies at runtime via Maven repositories. This ensures compatibility with Paper 1.21+ plugin loading system. Dependencies are fetched from:
+- Maven Central (Google mirror)
+- XenonDevs (InvUI)
+- SpaceIO (AnvilGUI snapshots)
+
+**Runtime-loaded libraries:**
+- InvUI 1.49
+- OkHttp 5.0.0-alpha.12
+- ConfigLib 4.8.0
+- ORMLite 6.1
+- HikariCP 6.3.0
+- H2 Database 2.3.232
+- Lombok 1.18.34
+- Commons Codec 1.18.0
+- AnvilGUI 2.0.3-SNAPSHOT
 
 ## Core Architecture
 
@@ -33,10 +48,12 @@ All major functionality implements `IService` interface with `setup()` and `shut
 
 **Registration order (important for dependency resolution):**
 1. `OrderIDService` - Sequential payment ID generation
-2. `CacheDataService` - In-memory leaderboard cache with 1-minute TTL
-3. `DatabaseService` - ORMLite DAOs and sub-services
-4. `PaymentService` - Active payment tracking and handler routing
-5. `MilestoneService` - Milestone tracking with BossBar display
+2. `BankCacheService` - Async VietQR bank data cache (fetched on startup)
+3. `CacheDataService` - In-memory leaderboard cache with 1-minute TTL
+4. `DatabaseService` - ORMLite DAOs and sub-services
+5. `PaymentService` - Active payment tracking and handler routing
+6. `MilestoneService` - Milestone tracking with BossBar display
+7. `WebhookService` - HTTP server for Sepay webhook callbacks (port 8080 by default)
 
 Access: `SPPlugin.getService(ServiceClass.class)`
 
@@ -135,6 +152,9 @@ Custom events fired during payment lifecycle:
 - `ServerMilestoneEvent` - Server-wide milestone completed
 - `MilestoneCompleteEvent` - Generic milestone completion
 
+**Webhook events:**
+- `SepayWebhookReceivedEvent` - Sepay webhook received and validated (fired async)
+
 **Listener execution order (important):**
 1. `PaymentHandlingListener` - Initiates async polling for payment status
 2. `SuccessHandlingListener` - Awards points/coins on success
@@ -180,6 +200,48 @@ SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
 - `getBedrockUsername(UUID)` - Get Bedrock display name
 - `getXboxUID(UUID)` - Get Xbox UID
 - `sendForm(Player, Form)` - Send Bedrock forms to players
+
+### Sepay Integration
+**Sepay** is the newest banking gateway with webhook support for instant payment confirmation:
+
+**QR Code Generation:**
+- Uses Sepay's QR code API instead of local VietQR generation
+- API endpoint: `https://my.sepay.vn/userapi/transactions/create-qr`
+- Returns base64-encoded QR code image for display
+
+**WebhookService** provides HTTP webhook endpoint for Sepay real-time payment notifications:
+- Creates HTTP server on configurable port (default: 8080)
+- Endpoint path: `/webhook/sepay` (configurable in `sepay-config.yml`)
+- Validates incoming requests with `Authorization: Apikey YOUR_KEY` header
+- Fires `SepayWebhookReceivedEvent` for processing by `SepayWebhookListener`
+- Uses virtual threads (Java 21+) for high-performance webhook handling
+- Only processes incoming transfers (ignores outgoing)
+
+**Configuration:**
+```yaml
+webhook-port: 8080
+webhook-path: "/webhook/sepay"
+webhook-api-key: "YOUR_WEBHOOK_API_KEY_HERE"  # Must match Sepay dashboard config
+```
+
+**Security:** Webhook endpoint validates API key before processing. Invalid keys return 403 Forbidden.
+
+**Payment Flow:**
+1. Player initiates `/bank <amount>`
+2. `SepayHandler` calls Sepay QR API to generate payment QR
+3. QR displayed to player via `PaymentBankPromptEvent`
+4. Player scans and pays
+5. Sepay sends webhook to plugin's HTTP server
+6. `SepayWebhookListener` validates payment and fires `PaymentSuccessEvent`
+
+### Bank Data Cache
+**BankCacheService** fetches and caches Vietnamese bank metadata from VietQR API:
+- Async fetch on plugin startup (non-blocking)
+- Stores bank short names, BINs, and display names
+- Case-insensitive lookup by bank short name
+- Used by Sepay handler for bank name resolution
+- Lifetime cache (no TTL, cleared on shutdown)
+- Access via `SPPlugin.getService(BankCacheService.class).getBankByName(name)`
 
 ## Important Patterns
 

@@ -18,6 +18,7 @@ import org.simpmc.simppay.config.types.banking.Web2mConfig;
 import org.simpmc.simppay.config.types.card.*;
 import org.simpmc.simppay.config.types.menu.PaymentHistoryMenuConfig;
 import org.simpmc.simppay.config.types.menu.ServerPaymentHistoryMenuConfig;
+import org.simpmc.simppay.config.types.menu.StreakMenuConfig;
 import org.simpmc.simppay.config.types.menu.card.CardListMenuConfig;
 import org.simpmc.simppay.config.types.menu.card.CardPriceMenuConfig;
 import org.simpmc.simppay.config.types.menu.card.anvil.CardPinMenuConfig;
@@ -59,6 +60,7 @@ public class ConfigManager {
             MilestonesPlayerConfig.class,  // Phase 3.2: New human-readable format
             MilestonesServerConfig.class,  // Phase 3.2: New human-readable format
             StreakConfig.class,  // Phase 5: Streak system
+            StreakMenuConfig.class,  // Phase 5: Streak menu configuration
             NaplandauConfig.class,
             Gachthe1sConfig.class,
             Card2KConfig.class,
