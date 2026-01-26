@@ -18,6 +18,7 @@ import org.simpmc.simppay.handler.CoinsHandler;
 import org.simpmc.simppay.model.detail.BankingDetail;
 import org.simpmc.simppay.model.detail.CardDetail;
 import org.simpmc.simppay.service.PaymentService;
+import org.simpmc.simppay.util.CommandUtils;
 import org.simpmc.simppay.util.MessageUtil;
 import org.simpmc.simppay.util.SoundUtil;
 
@@ -128,7 +129,7 @@ public class SuccessHandlingListener implements Listener {
                 plugin.getFoliaLib().getScheduler().runLater(task -> {
                     commands.forEach(command -> { // TODO: Add support for player commands ? not sure if needed tbh
                         String parsed = PlaceholderAPI.setPlaceholders(player, command);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
+                        CommandUtils.dispatchCommand(Bukkit.getConsoleSender(), parsed);
                     });
                 }, 1);
             }
@@ -157,7 +158,7 @@ public class SuccessHandlingListener implements Listener {
                                 .replace("<amount_formatted>", amountFormatted)
                                 .replace("<ref_id>", refId);
                         String parsed = PlaceholderAPI.setPlaceholders(player, processed);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
+                        CommandUtils.dispatchCommand(Bukkit.getConsoleSender(), parsed);
                     }
                 }, 1);
             }

@@ -7,6 +7,7 @@ import org.simpmc.simppay.commands.root.BankingCommand;
 import org.simpmc.simppay.commands.root.NaptheCommand;
 import org.simpmc.simppay.commands.root.NaptheNhanhCommand;
 import org.simpmc.simppay.commands.root.StreakCommand;
+import org.simpmc.simppay.commands.root.ToggleBossBarCommand;
 import org.simpmc.simppay.commands.root.ViewHistoryCommand;
 import org.simpmc.simppay.commands.root.admin.ManualChargeCommand;
 import org.simpmc.simppay.commands.root.admin.SimpPayAdminCommand;
@@ -35,6 +36,7 @@ public class CommandHandler {
         new NaptheCommand();
         new ViewHistoryCommand();
         new StreakCommand();  // Phase 5
+        new ToggleBossBarCommand();  // BossBar toggle
     }
 
     public void onDisable() {

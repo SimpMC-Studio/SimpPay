@@ -1,8 +1,6 @@
 package org.simpmc.simppay.listener.internal.milestone;
 
-import it.unimi.dsi.fastutil.objects.ObjectObjectMutablePair;
 import me.clip.placeholderapi.PlaceholderAPI;
-import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,6 +18,7 @@ import org.simpmc.simppay.service.DatabaseService;
 import org.simpmc.simppay.service.MilestoneService;
 import org.simpmc.simppay.service.database.PaymentLogService;
 import org.simpmc.simppay.service.database.PlayerService;
+import org.simpmc.simppay.util.CommandUtils;
 import org.simpmc.simppay.util.MessageUtil;
 
 import java.util.*;
@@ -35,24 +34,12 @@ public class MilestoneListener implements Listener {
         SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(() -> {
             UUID uuid = event.getPlayer().getUniqueId();
             MilestoneService service = SPPlugin.getService(MilestoneService.class);
-            MessageUtil.debug("Loading player milestone for " + event.getPlayer().getName());
+            MessageUtil.debug("Loading unified milestones for " + event.getPlayer().getName());
 
-            List<BossBar> serverBossbars = service.serverBossbars.stream().map(ObjectObjectMutablePair::right).toList();
+            // Load unified milestones (both player and server) and start cycling
             SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(task -> {
-                service.loadPlayerMilestone(uuid);
-            }, 20 * 2).thenAccept(task -> {
-                List<BossBar> playerBossbars = service.playerBossBars.get(uuid).stream().map(ObjectObjectMutablePair::right).toList();
-                for (BossBar bar : playerBossbars) {
-                    SPPlugin.getInstance().getFoliaLib().getScheduler().runAtEntity(event.getPlayer(), task2 -> {
-                        bar.addViewer(event.getPlayer());
-                    });
-                }
-            });
-
-            // have to load after player milestone is loaded
-            for (BossBar bar : serverBossbars) {
-                bar.addViewer(event.getPlayer());
-            }
+                service.loadUnifiedMilestonesForPlayer(uuid);
+            }, 20 * 2);
 
         }, 20);
     }
@@ -60,9 +47,22 @@ public class MilestoneListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         MilestoneService service = SPPlugin.getService(MilestoneService.class);
-        service.playerBossBars.remove(event.getPlayer().getUniqueId());
-        service.playerCurrentMilestones.remove(event.getPlayer().getUniqueId());
-        MessageUtil.debug("Cleared cache bossbar and currentmilestones " + event.getPlayer().getName());
+        UUID uuid = event.getPlayer().getUniqueId();
+
+        // Stop cycling task
+        service.stopCyclingTask(uuid);
+
+        // Remove BossBar
+        service.unifiedBossBar.remove(uuid);
+
+        // Clear cached data
+        service.activeMilestones.remove(uuid);
+        service.cycleIndex.remove(uuid);
+        service.currentMilestones.remove(uuid);
+        service.currentAmountCache.remove(uuid);
+        service.bossbarHidden.remove(uuid);
+
+        MessageUtil.debug("Cleared unified cycling BossBar for " + event.getPlayer().getName());
     }
 
     /**
@@ -110,12 +110,12 @@ public class MilestoneListener implements Listener {
                     // Award rewards
                     for (String command : config.getCommands()) {
                         String formattedCommand = PlaceholderAPI.setPlaceholders(Bukkit.getPlayer(event.getPlayerUUID()), command);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), formattedCommand);
+                        CommandUtils.dispatchCommand(Bukkit.getConsoleSender(), formattedCommand);
                         MessageUtil.debug("Ran milestone command: " + formattedCommand);
                     }
 
                     // Remove from in-memory cache
-                    List<MilestoneConfig> cachedMilestones = milestoneService.playerCurrentMilestones.get(event.getPlayerUUID());
+                    List<MilestoneConfig> cachedMilestones = milestoneService.currentMilestones.get(event.getPlayerUUID());
                     if (cachedMilestones != null) {
                         cachedMilestones.removeIf(m -> m.type == type && m.amount == config.amount);
                     }
@@ -129,48 +129,13 @@ public class MilestoneListener implements Listener {
                 }
             }
         }
+
+        // Refresh unified milestones after completion (includes both player and server milestones)
+        SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(t -> {
+            milestoneService.refreshUnifiedMilestones(event.getPlayerUUID());
+        });
     }
 
-    @EventHandler
-    public void updatePersonalMilestoneBossbar(PaymentSuccessEvent event) {
-        MilestoneService service = SPPlugin.getService(MilestoneService.class);
-        PlayerService playerService = SPPlugin.getService(DatabaseService.class).getPlayerService();
-        PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-        SPPlayer player = playerService.findByUuid(event.getPlayerUUID());
-        Iterator<ObjectObjectMutablePair<MilestoneConfig, BossBar>> iter = service.playerBossBars.get(event.getPlayerUUID()).iterator();
-        while (iter.hasNext()) {
-            ObjectObjectMutablePair<MilestoneConfig, BossBar> pair = iter.next();
-            if (pair == null) {
-                continue;
-            }
-            double playerNewBal = switch (pair.left().type) {
-                case MilestoneType.ALL -> paymentLogService.getPlayerTotalAmount(player);
-                case MilestoneType.DAILY -> paymentLogService.getPlayerDailyAmount(player);
-                case MilestoneType.WEEKLY -> paymentLogService.getPlayerWeeklyAmount(player);
-                case MilestoneType.MONTHLY -> paymentLogService.getPlayerMonthlyAmount(player);
-                case MilestoneType.YEARLY -> paymentLogService.getPlayerYearlyAmount(player);
-                default -> throw new IllegalStateException("Unexpected value: " + pair);
-            };
-            BossBar bar = pair.right();
-            double milestone = pair.left().amount;
-            double newProgress = (playerNewBal) / milestone;
-
-            if (newProgress >= 1) {
-                // Milestone complete
-                iter.remove();
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(() -> {
-                    bar.removeViewer(Bukkit.getPlayer(event.getPlayerUUID()));
-                    Bukkit.getPluginManager().callEvent(new PlayerMilestoneEvent(event.getPlayerUUID()));
-                }, 1);
-
-            } else {
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runLater(() -> {
-                    bar.progress((float) newProgress);
-                }, 1);
-            }
-        }
-
-    }
 
 
     /**
@@ -225,12 +190,9 @@ public class MilestoneListener implements Listener {
                             task2.cancel();
                             return;
                         }
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                        CommandUtils.dispatchCommand(Bukkit.getConsoleSender(), command);
                         MessageUtil.debug("Ran server milestone command: " + command);
                     }, 1, 20);
-
-                    // Remove from in-memory cache
-                    milestoneService.serverCurrentMilestones.removeIf(m -> m.type == type && m.amount == config.amount);
 
                     MessageUtil.debug("Server completed milestone: " + type.name() + " " + config.amount);
 
@@ -241,44 +203,13 @@ public class MilestoneListener implements Listener {
                 }
             }
         }
-    }
 
-    @EventHandler
-    public void updateServerMilestoneBossbar(PaymentSuccessEvent event) {
-        MilestoneService service = SPPlugin.getService(MilestoneService.class);
-        PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
-        Iterator<ObjectObjectMutablePair<MilestoneConfig, BossBar>> iter = service.serverBossbars.iterator();
-        while (iter.hasNext()) {
-            ObjectObjectMutablePair<MilestoneConfig, BossBar> pair = iter.next();
-            if (pair == null) {
-                continue;
+        // Refresh unified milestones for all online players after server milestone completion
+        SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(t -> {
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                milestoneService.refreshUnifiedMilestones(onlinePlayer.getUniqueId());
             }
-            double serverNewBal = switch (pair.left().type) {
-                case ALL -> paymentLogService.getEntireServerAmount();
-                case DAILY -> paymentLogService.getEntireServerDailyAmount();
-                case WEEKLY -> paymentLogService.getEntireServerWeeklyAmount();
-                case MONTHLY -> paymentLogService.getEntireServerMonthlyAmount();
-                case YEARLY -> paymentLogService.getEntireServerYearlyAmount();
-                default -> throw new IllegalStateException("Unexpected value: " + pair);
-            };
-            BossBar bar = pair.right();
-            double milestone = pair.left().amount;
-            double newProgress = (serverNewBal) / milestone;
-
-            if (newProgress >= 1) {
-                // Milestone complete
-                iter.remove();
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        bar.removeViewer(player);
-                    }
-                });
-            } else {
-                SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
-                    bar.progress((float) newProgress);
-                });
-            }
-        }
+        });
     }
 
 }

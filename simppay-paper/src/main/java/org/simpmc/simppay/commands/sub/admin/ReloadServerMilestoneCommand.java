@@ -14,6 +14,9 @@ public class ReloadServerMilestoneCommand {
     }
 
     public static void execute(CommandSender player, CommandArguments args) {
-        SPPlugin.getService(MilestoneService.class).loadServerMilestone();
+        // Reload unified milestones for all online players
+        for (org.bukkit.entity.Player onlinePlayer : org.bukkit.Bukkit.getOnlinePlayers()) {
+            SPPlugin.getService(MilestoneService.class).refreshUnifiedMilestones(onlinePlayer.getUniqueId());
+        }
     }
 }

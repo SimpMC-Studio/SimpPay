@@ -25,3 +25,7 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+    packetevents:
+      load: BEFORE
+      required: true
+      join-classpath: true

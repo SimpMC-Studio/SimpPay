@@ -33,6 +33,14 @@ public class PaymentHandlingListener implements Listener {
     public void onFailedPayment(PaymentFailedEvent event) {
         MessageConfig messageConfig = ConfigManager.getInstance().getConfig(MessageConfig.class);
         Player player = Bukkit.getPlayer(event.getPlayerUUID());
+
+        // Log failure with payment details for troubleshooting
+        String playerName = player != null ? player.getName() : "Unknown";
+        MessageUtil.error("[PaymentFailed] Player: " + playerName +
+                " | Amount: " + event.getPayment().getDetail().getAmount() +
+                " | Type: " + event.getPayment().getPaymentType() +
+                " | PaymentID: " + event.getPayment().getPaymentID());
+
         MessageUtil.sendMessage(player, messageConfig.failedCard);
         SoundUtil.sendSound(player, messageConfig.soundEffect.get(PaymentStatus.FAILED).toSound());
     }
@@ -54,12 +62,18 @@ public class PaymentHandlingListener implements Listener {
         long interval = ConfigManager.getInstance().getConfig(MainConfig.class).intervalApiCall;
         int bankingTimeout = ConfigManager.getInstance().getConfig(BankingConfig.class).bankingTimeout;
         plugin.getFoliaLib().getScheduler().runTimerAsync(task -> {
-            // self expires after 5 minutes
+            // self expires after configured timeout
             if (System.currentTimeMillis() < event.getPayment().getCreatedAt().getTime() + Duration.ofMinutes(bankingTimeout).toMillis()) {
-                // if payment is created less than 5 minutes ago, continue checking
+                // if payment is created less than timeout minutes ago, continue checking
             } else {
-                // if payment is created more than 5 minutes ago, cancel the task
-                MessageUtil.debug("[Payment-Poller] Payment created more than 5 minutes ago, cancelling task");
+                // if payment is created more than timeout minutes ago, cancel the task
+                Player player = Bukkit.getPlayer(event.getPayment().getPlayerUUID());
+                String playerName = player != null ? player.getName() : "Unknown";
+                MessageUtil.error("[PaymentPoller] Payment expired | Player: " + playerName +
+                        " | Amount: " + event.getPayment().getDetail().getAmount() +
+                        " | Type: " + event.getPaymentType() +
+                        " | PaymentID: " + event.getPaymentID() +
+                        " | Timeout: " + bankingTimeout + " minutes");
                 callEventSync(new PaymentFailedEvent(event.getPayment()));
                 SPPlugin.getService(PaymentService.class).getPollingPayments().remove(event.getPayment().getPaymentID());
                 task.cancel();
@@ -68,7 +82,7 @@ public class PaymentHandlingListener implements Listener {
 
             // check if payment is still in pollingPayments
             if (!SPPlugin.getService(PaymentService.class).getPollingPayments().containsKey(event.getPaymentID())) {
-                MessageUtil.debug("[Payment-Poller] Payment is not in pollingPayments, cancelling task");
+                MessageUtil.debug("[PaymentPoller] Payment removed from polling queue | PaymentID: " + event.getPaymentID());
                 task.cancel();
                 return;
             }
@@ -95,6 +109,13 @@ public class PaymentHandlingListener implements Listener {
                 }
                 case FAILED -> {
                     // handle failed
+                    Player failedPlayer = Bukkit.getPlayer(event.getPayment().getPlayerUUID());
+                    String failedPlayerName = failedPlayer != null ? failedPlayer.getName() : "Unknown";
+                    MessageUtil.error("[PaymentPoller] Payment failed | Player: " + failedPlayerName +
+                            " | Amount: " + event.getPayment().getDetail().getAmount() +
+                            " | Type: " + event.getPaymentType() +
+                            " | PaymentID: " + event.getPaymentID() +
+                            " | Message: " + (result != null ? result.getMessage() : "No message"));
                     callEventSync(new PaymentFailedEvent(event.getPayment()));
                     SPPlugin.getService(PaymentService.class).getPollingPayments().remove(event.getPayment().getPaymentID());
                     if (event.getPaymentType() == PaymentType.BANKING) {
@@ -113,33 +134,59 @@ public class PaymentHandlingListener implements Listener {
                     task.cancel();
                 }
                 case null -> {
+                    Player nullPlayer = Bukkit.getPlayer(event.getPayment().getPlayerUUID());
+                    String nullPlayerName = nullPlayer != null ? nullPlayer.getName() : "Unknown";
+                    MessageUtil.error("[PaymentPoller] Null status received | Player: " + nullPlayerName +
+                            " | Amount: " + event.getPayment().getDetail().getAmount() +
+                            " | Type: " + event.getPaymentType() +
+                            " | PaymentID: " + event.getPaymentID());
                     callEventSync(new PaymentFailedEvent(event.getPayment()));
                     SPPlugin.getService(PaymentService.class).getPollingPayments().remove(event.getPayment().getPaymentID());
-                    MessageUtil.debug("[Payment-Poller] Payment status is null");
                     task.cancel();
                 }
 
                 // Bank Zone
                 case INVALID -> {
+                    Player invalidPlayer = Bukkit.getPlayer(event.getPayment().getPlayerUUID());
+                    String invalidPlayerName = invalidPlayer != null ? invalidPlayer.getName() : "Unknown";
+                    MessageUtil.error("[PaymentPoller] Invalid payment | Player: " + invalidPlayerName +
+                            " | Amount: " + event.getPayment().getDetail().getAmount() +
+                            " | Type: " + event.getPaymentType() +
+                            " | PaymentID: " + event.getPaymentID());
                     callEventSync(new PaymentFailedEvent(event.getPayment()));
                     SPPlugin.getService(PaymentService.class).getPollingPayments().remove(event.getPayment().getPaymentID());
                     task.cancel();
                 }
                 case EXIST -> {
+                    Player existPlayer = Bukkit.getPlayer(event.getPayment().getPlayerUUID());
+                    String existPlayerName = existPlayer != null ? existPlayer.getName() : "Unknown";
+                    MessageUtil.error("[PaymentPoller] Payment already exists on API | Player: " + existPlayerName +
+                            " | Amount: " + event.getPayment().getDetail().getAmount() +
+                            " | Type: " + event.getPaymentType() +
+                            " | PaymentID: " + event.getPaymentID());
                     callEventSync(new PaymentFailedEvent(event.getPayment()));
-                    MessageUtil.debug("[Payment-Poller] Payment alrady exist on payment api");
                     SPPlugin.getService(PaymentService.class).getPollingPayments().remove(event.getPayment().getPaymentID());
                     task.cancel();
                 }
                 case EXPIRED -> {
+                    Player expiredPlayer = Bukkit.getPlayer(event.getPayment().getPlayerUUID());
+                    String expiredPlayerName = expiredPlayer != null ? expiredPlayer.getName() : "Unknown";
+                    MessageUtil.error("[PaymentPoller] Payment expired on API | Player: " + expiredPlayerName +
+                            " | Amount: " + event.getPayment().getDetail().getAmount() +
+                            " | Type: " + event.getPaymentType() +
+                            " | PaymentID: " + event.getPaymentID());
                     callEventSync(new PaymentFailedEvent(event.getPayment()));
-                    MessageUtil.debug("[Payment-Poller] Payment expired on payment api");
                     SPPlugin.getService(PaymentService.class).getPollingPayments().remove(event.getPayment().getPaymentID());
                     task.cancel();
                 }
                 case CANCELLED -> {
+                    Player cancelledPlayer = Bukkit.getPlayer(event.getPayment().getPlayerUUID());
+                    String cancelledPlayerName = cancelledPlayer != null ? cancelledPlayer.getName() : "Unknown";
+                    MessageUtil.error("[PaymentPoller] Payment cancelled on API | Player: " + cancelledPlayerName +
+                            " | Amount: " + event.getPayment().getDetail().getAmount() +
+                            " | Type: " + event.getPaymentType() +
+                            " | PaymentID: " + event.getPaymentID());
                     callEventSync(new PaymentFailedEvent(event.getPayment()));
-                    MessageUtil.debug("[Payment-Poller] Payment cancelled on payment api");
                     SPPlugin.getService(PaymentService.class).getPollingPayments().remove(event.getPayment().getPaymentID());
                     task.cancel();
                 }

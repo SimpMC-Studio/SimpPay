@@ -22,6 +22,7 @@ import org.simpmc.simppay.listener.internal.player.SuccessHandlingListener;
 import org.simpmc.simppay.listener.internal.player.database.SuccessDatabaseHandlingListener;
 import org.simpmc.simppay.service.*;
 import org.simpmc.simppay.service.cache.CacheDataService;
+import xyz.xenondevs.invui.InvUI;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -66,6 +67,7 @@ public final class SPPlugin extends JavaPlugin {
     public void onEnable() {
         // Reset config
         PacketEvents.getAPI().init();
+        InvUI.getInstance().setPlugin(this);
         registerMetrics();
         if (getServer().getPluginManager().getPlugin("floodgate") != null) {
             floodgateEnabled = org.simpmc.simppay.util.FloodgateUtil.initialize();

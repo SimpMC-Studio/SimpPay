@@ -9,6 +9,7 @@ import org.simpmc.simppay.config.types.StreakConfig;
 import org.simpmc.simppay.database.Database;
 import org.simpmc.simppay.database.entities.PlayerStreakPayment;
 import org.simpmc.simppay.service.DatabaseService;
+import org.simpmc.simppay.util.CommandUtils;
 import org.simpmc.simppay.util.MessageUtil;
 
 import java.sql.SQLException;
@@ -184,7 +185,7 @@ public class StreakService {
                 Player player = Bukkit.getPlayer(playerUUID);
                 for (String command : reward.commands) {
                     String formattedCommand = command.replace("%player_name%", player != null ? player.getName() : "Unknown");
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), formattedCommand);
+                    CommandUtils.dispatchCommand(Bukkit.getConsoleSender(), formattedCommand);
                 }
 
                 // Update last reward tier

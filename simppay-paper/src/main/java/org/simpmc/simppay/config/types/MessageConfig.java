@@ -48,6 +48,10 @@ public class MessageConfig {
 
     public String noPromo = "<color:#ff0000>Không có khuyến mại theo mặc định!";
 
+    public String bossbarHidden = "<color:#00ff00>Đã ẩn BossBar milestone!";
+
+    public String bossbarShown = "<color:#00ff00>Đã hiển thị BossBar milestone!";
+
     // TODO: store sound directly or have a toSound method
     public Map<PaymentStatus, SoundConfig> soundEffect = Map.of(
             PaymentStatus.SUCCESS, new SoundConfig(Key.key(Key.MINECRAFT_NAMESPACE, "entity.player.levelup"), 1, 1), // /playsound minecraft:entity.player.levelup ambient @a ~ ~ ~ 1 1

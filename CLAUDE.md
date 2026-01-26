@@ -13,31 +13,40 @@ SimpPay is a Minecraft plugin for automated Vietnamese payment processing (QR ba
 ## Build Commands
 
 ```bash
-./gradlew build                           # Build all, output: build/libs/SimpPay-Paper-<version>.jar
-./gradlew clean build                     # Clean build
-./gradlew :simppay-paper:shadowJar        # Create shaded JAR only
-./gradlew :simppay-paper:sendRconCommand  # Build + reload plugin via RCON (localhost:25575)
+./gradlew build                    # Build all, output: build/libs/SimpPay-<version>.jar
+./gradlew clean build              # Clean build
+./gradlew :simppay-paper:shadowJar # Create shaded JAR only
 ```
+
+**Output location:** `build/libs/SimpPay-<version>.jar` (can override with `OUTPUT_DIR` env var)
+
+**Dependencies:** All shaded dependencies are relocated under `me.typical.lib.*`:
+- ConfigLib → `me.typical.lib.configlib`
+- CommandAPI → `me.typical.lib.commandapi`
+- FoliaLib → `me.typical.lib.folialib`
+- AnvilGUI → `me.typical.lib.anvilgui`
 
 ## Core Architecture
 
 ### Service Pattern
 All major functionality implements `IService` interface with `setup()` and `shutdown()` methods. Services are registered in `SPPlugin.onEnable()` and auto-register as event listeners if they implement `Listener`.
 
+**Registration order (important for dependency resolution):**
+1. `OrderIDService` - Sequential payment ID generation
+2. `CacheDataService` - In-memory leaderboard cache with 1-minute TTL
+3. `DatabaseService` - ORMLite DAOs and sub-services
+4. `PaymentService` - Active payment tracking and handler routing
+5. `MilestoneService` - Milestone tracking with BossBar display
+
 Access: `SPPlugin.getService(ServiceClass.class)`
 
-**Key services:**
-- `PaymentService` - Payment processing state, active payments map
-- `DatabaseService` - ORMLite operations via DAOs
-- `MilestoneService` - Cumulative recharge milestones with `MilestoneRepository` for persistence
-- `CacheDataService` - In-memory cache with `LeaderboardEntry` tracking
-- `StreakService` - Consecutive payment day tracking
-
 ### Handler System
-Payment gateways use the `PaymentHandler` interface. Handlers are dynamically instantiated via reflection from enum types:
-- `CardAPI` enum → Card handlers (`TSTHandler`, `GT1SHandler`, `Card2KHandler`, etc.)
+Payment gateways use the `PaymentHandler` interface. Handlers are dynamically instantiated via reflection from enum types in `HandlerRegistry`:
+- `CardAPI` enum → Card handlers (`TSTHandler`, `GT1SHandler`, `Card2KHandler`, `TSRHandler`, `DT1SHandler`)
 - `BankAPI` enum → Bank handlers (`PayosHandler`, `W2MHandler`, `SepayHandler`)
 - `CoinsAPI` enum → Points handlers (`PlayerPointsHandler`, `CoinsEngineHandler`, `DefaultCoinsHandler`)
+
+Each enum specifies its handler class reference. Handlers are loaded during `setup()` and on config reload.
 
 ### Configuration System
 ConfigLib with YAML files managed by `ConfigManager`:
@@ -48,69 +57,159 @@ ConfigLib with YAML files managed by `ConfigManager`:
 - Register new configs in `ConfigManager.configClasses` list
 
 **Key configs:**
-- `StreakConfig` - Consecutive day rewards
-- `MilestonesPlayerConfig` / `MilestonesServerConfig` - Human-readable milestone format with `MilestoneEntry`
-- `SepayConfig` - Sepay banking integration
+- `MainConfig` - Core plugin settings (debug mode, locale)
+- `MessageConfig` - MiniMessage-formatted player messages
+- `DatabaseConfig` - H2/MySQL/MariaDB connection settings
+- `StreakConfig` - Consecutive day rewards configuration
+- `MilestonesPlayerConfig` / `MilestonesServerConfig` - Milestone rewards with `MilestoneEntry`
+- `NaplandauConfig` - First-time recharge rewards
+- Banking configs: `PayosConfig`, `Web2mConfig`, `SepayConfig`
+- Card configs: `ThesieutocConfig`, `Card2kConfig`, `Gachthe1sConfig`, etc.
 
 ### UI System
-Uses **InvUI** for chest GUIs (static `openMenu()` methods) and AnvilGUI for text input:
-- `CardListView.openMenu(player)` → `CardPriceView.openMenu(player, cardType)` → AnvilGUI inputs
-- `PaymentHistoryView.openMenu(player, playerName)` - Async data loading with `PagedGui`
-- `StreakMenuView.openMenu(player)` - Streak progress display
+Uses **InvUI** (v1.49) for chest GUIs (static `openMenu()` methods) and AnvilGUI for text input:
+
+**Menu flow:**
+```
+CardListView.openMenu(player)
+  → Shows enabled card types
+  → Clicks open CardPriceView.openMenu(player, cardType)
+    → Shows price options (10k, 20k, 50k, etc.)
+    → Clicks open CardSerialInput (AnvilGUI)
+      → User enters serial number
+      → Opens CardPinInput (AnvilGUI)
+        → User enters PIN
+        → Initiates payment via PaymentService
+```
+
+**Other menus:**
+- `PaymentHistoryView.openMenu(player, playerName)` - Async-loaded paginated transaction history with `PagedGui`
+- `StreakMenuView.openMenu(player)` - Streak progress display with milestone rewards
 
 Menu layouts configured via `DisplayItem` in `menus/*.yml` configs.
 
 ### Commands
-CommandAPI (v11.1.0) in `CommandHandler.onEnable()`:
-- `/napthe` - Card recharge GUI
-- `/napthenhanh <card> <price> <serial> <pin>` - Quick recharge
-- `/bank <amount>` - QR banking
-- `/lichsunapthe` - Payment history
-- `/streak` - Streak menu
-- `/simppayadmin reload|lichsu|fakecard|fakebank` - Admin commands
+CommandAPI (v11.1.0) managed by `CommandHandler`:
+- `/napthe` - Open card recharge GUI (permission: `simppay.napthe`)
+- `/napthenhanh <card> <price> <serial> <pin>` - Quick recharge without GUI (permission: `simppay.napthenhanh`)
+- `/bank <amount>` - QR banking recharge (permission: `simppay.banking`)
+- `/lichsunapthe [player]` - Payment history (permission: `simppay.lichsunapthe`)
+- `/streak` - Streak menu (permission: `simppay.streak`)
+- `/simppayadmin reload` - Reload all configs (permission: `simppay.admin.reload`)
+- `/simppayadmin lichsu [player]` - View recharge history (permission: `simppay.admin.viewhistory`)
+- `/simppayadmin fakecard <player> <amount>` - Simulate card payment for testing
+- `/simppayadmin fakebank <player> <amount>` - Simulate bank payment for testing
 
 Commands split into `commands/root/` and `commands/sub/`.
 
 ### Database
-ORMLite ORM with HikariCP. Supports H2 (embedded) and MySQL/MariaDB.
+ORMLite ORM with HikariCP connection pooling. Supports H2 (embedded) and MySQL/MariaDB.
 
 **Entities:**
-- `SPPlayer` - UUID/username mapping
-- `CardPayment` / `BankingPayment` - Transaction records
-- `PlayerData` - Cumulative totals by period
-- `PlayerStreakPayment` - Streak tracking
-- `MilestoneCompletion` - Prevents duplicate milestone rewards
-- `LeaderboardCache` - Cached leaderboard data
+- `SPPlayer` - UUID/username mapping (main player record)
+- `CardPayment` / `BankingPayment` - Transaction records with price, serial, PIN (card only), status
+- `PlayerData` - Cumulative totals by period (DAILY, WEEKLY, MONTHLY, YEARLY, ALL)
+- `PlayerStreakPayment` - Consecutive day streak tracking with best streak
+- `MilestoneCompletion` - Audit trail to prevent duplicate milestone rewards
+- `LeaderboardCache` - Cached leaderboard data for performance
+
+**DAO Services (accessed via DatabaseService):**
+- `PlayerService` - Player lookups, creation, UUID/name resolution
+- `PaymentLogService` - Transaction queries with batch optimizations
+- `PlayerDataService` - Period-based total tracking and updates
+- `StreakService` - Streak calculation, updates, and reward checks
+
+**Database migrations:** No formal migration system. Uses `TableUtils.createTableIfNotExists()` for schema management.
 
 ### Event System
-Custom events in payment lifecycle:
-- `PaymentBankPromptEvent` → `PaymentSuccessEvent` / `PaymentFailedEvent`
-- `PlayerMilestoneEvent` / `ServerMilestoneEvent` - Milestone completion
+Custom events fired during payment lifecycle:
 
-Listeners in `listener/internal/` handle: payment processing, cache updates, streak updates, milestone checks, database persistence.
+**Payment events:**
+- `PaymentBankPromptEvent` - Display QR code/payment link to player
+- `PaymentQueueSuccessEvent` - Payment queued for status polling
+- `PaymentSuccessEvent` - Payment confirmed successful (triggers rewards)
+- `PaymentFailedEvent` - Payment failed or rejected
+
+**Milestone events:**
+- `PlayerMilestoneEvent` - Player milestone completed
+- `ServerMilestoneEvent` - Server-wide milestone completed
+- `MilestoneCompleteEvent` - Generic milestone completion
+
+**Listener execution order (important):**
+1. `PaymentHandlingListener` - Initiates async polling for payment status
+2. `SuccessHandlingListener` - Awards points/coins on success
+3. `CacheUpdaterListener` - Updates leaderboard cache synchronously
+4. `MilestoneListener` - Checks ALL uncompleted milestones (retroactive)
+5. `SuccessDatabaseHandlingListener` - Updates streak via `StreakService.updateStreak()`
+6. Database persistence in `DatabaseService`
 
 ### Async Scheduling
-FoliaLib for Bukkit/Paper/Folia compatibility:
+FoliaLib for Bukkit/Paper/Folia compatibility. Provides cross-compatible task scheduling:
+
 ```java
-SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> { });
-SPPlugin.getInstance().getFoliaLib().getScheduler().runAtEntity(player, task -> { });
+// Async tasks (safe for blocking operations like HTTP requests)
+SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> {
+    // Background work
+});
+
+// Entity-specific tasks (required for entity operations on Folia)
+SPPlugin.getInstance().getFoliaLib().getScheduler().runAtEntity(player, task -> {
+    // Player-specific operations
+});
+
+// Repeated async tasks (used for payment polling)
+SPPlugin.getInstance().getFoliaLib().getScheduler().runTimerAsync(task -> {
+    // Repeated background work
+}, delayTicks, periodTicks);
+
+// Next tick (main thread on Spigot, global region on Folia)
+SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(task -> {
+    // Sync work
+});
 ```
 
 ### External Integrations
-`HookManager` handles soft-dependencies. `FloodgateUtil` provides Bedrock player detection with `isBedrockPlayer()`, `getBedrockUsername()`, `getXboxUID()`, and `sendForm()` methods.
+**HookManager** manages soft-dependencies:
+- PlaceholderAPI - Placeholder expansion for leaderboards and stats
+- PlayerPoints - Primary points provider
+- CoinsEngine - Alternative points provider
+- Floodgate - Bedrock player support
+
+**FloodgateUtil** provides Bedrock player detection:
+- `isBedrockPlayer(UUID)` - Check if player is from Bedrock
+- `getBedrockUsername(UUID)` - Get Bedrock display name
+- `getXboxUID(UUID)` - Get Xbox UID
+- `sendForm(Player, Form)` - Send Bedrock forms to players
 
 ## Important Patterns
 
 ### Adding a New Payment Gateway
 1. Create handler in `handler/[card|banking]/<gateway>/` implementing `PaymentHandler`
-2. Add enum entry to `CardAPI` or `BankAPI` with handler class reference
-3. Create config class in `config/types/[card|banking]/` with `@Folder` annotation
-4. Register config in `ConfigManager.configClasses`
+2. Add enum entry to `CardAPI` or `BankAPI` with handler class reference:
+   ```java
+   NEW_GATEWAY("New Gateway", NewGatewayHandler.class)
+   ```
+3. Create config class in `config/types/[card|banking]/` with `@Folder` annotation:
+   ```java
+   @Folder("card") // or "banking"
+   public class NewGatewayConfig { ... }
+   ```
+4. Register config in `ConfigManager.configClasses` list
+5. Implement required handler methods: `send()`, `check()`, `getAPI()`, `getConfig()`
 
 ### Adding Config Files
 1. Create config class in `config/types/` (use `@Folder("subfolder")` for subdirectories)
-2. Add to `ConfigManager.configClasses` list
-3. Access via `ConfigManager.getInstance().getConfig(YourConfig.class)`
+2. Add to `ConfigManager.configClasses` list:
+   ```java
+   private final List<Class<?>> configClasses = List.of(
+       MainConfig.class,
+       MessageConfig.class,
+       YourNewConfig.class  // Add here
+   );
+   ```
+3. Access via `ConfigManager.getInstance().getConfig(YourNewConfig.class)`
+
+**Config reload:** `/simppayadmin reload` reloads all configs AND re-initializes `HandlerRegistry` (handlers get new config instances).
 
 ### Message Localization
 All messages in `MessageConfig.java` using MiniMessage format:
@@ -119,33 +218,148 @@ MessageConfig messages = ConfigManager.getInstance().getConfig(MessageConfig.cla
 MessageUtil.sendMessage(player, messages.someMessage.replace("{placeholder}", value));
 ```
 
+**Debug logging:**
+```java
+MessageUtil.debug("Debug info"); // Only shows if MainConfig.debug = true
+```
+
 ### Payment Processing Flow
 1. Player initiates → `PaymentService.sendCard()` or `sendBank()`
-2. Handler processes → returns `PaymentStatus.PENDING`
-3. Async polling checks status
-4. On success: `PaymentSuccessEvent` → awards points → updates cache → checks milestones → `StreakService.updateStreak()` → persists to database
+2. Handler validates and processes → returns `PaymentStatus.PENDING`
+3. `PaymentQueueSuccessEvent` fired → `PaymentHandlingListener.addTaskChecking()` starts async polling
+4. Polling checks payment status every N seconds (configurable timeout)
+5. On success:
+   - `PaymentSuccessEvent` fired
+   - `SuccessHandlingListener` awards points/coins via `CoinsHandler`
+   - `CacheUpdaterListener` updates leaderboard cache synchronously
+   - `MilestoneListener` checks ALL uncompleted milestones (retroactive checking)
+   - `StreakService.updateStreak()` updates consecutive day streak
+   - Database persistence via `DatabaseService`
 
 ### Milestone System
-- `MilestoneRepository` tracks completed milestones to prevent duplicates
+**Architecture:**
+- `MilestoneRepository` tracks completed milestones in database to prevent duplicates
 - `MilestoneListener` checks ALL uncompleted milestones on each payment (retroactive)
-- Config uses `MilestoneEntry` with human-readable `name` field
+- Supports 5 milestone types: `ALL`, `DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY`
+- Config uses `MilestoneEntry` with human-readable `name` field for tracking
+
+**Retroactive checking:**
+When a player makes ANY payment, the system checks if their cumulative total NOW meets ANY uncompleted milestone threshold. This allows players to claim milestones they may have missed.
+
+**BossBar display:**
+`MilestoneService` creates dynamic BossBars showing progress toward next milestone. Progress bars update on every payment.
+
+### Streak System
+**Logic (StreakService):**
+- First payment on a new day = streak starts at 1
+- Payment on consecutive day = increment streak
+- Gap > 1 day = reset to 1
+- Multiple payments same day = no change
+- Best streak tracked separately (never decreases)
+
+**Reward tiers:**
+Configurable in `StreakConfig` with milestone-based rewards:
+```yaml
+milestones:
+  3:
+    commands: ["give {player} diamond 3"]
+    message: "3-day streak reward!"
+  7:
+    commands: ["give {player} emerald 1"]
+    message: "7-day streak reward!"
+```
+
+**Date calculation:** Uses `ZoneId.systemDefault()` for local timezone. Compares LocalDate to determine consecutive days.
+
+### Cache System
+**CacheDataService optimization:**
+- Batch query approach reduces database queries (5 queries → 2 queries)
+- Synchronous cache updates on `PaymentSuccessEvent` (no queue delay)
+- Leaderboard data cached with 1-minute TTL
+- Lazy loading for PlaceholderAPI placeholder requests
+- `LeaderboardEntry` stores: UUID, name, amount for quick access
+
+**Performance:** Cache invalidation on every payment success ensures fresh data without polling overhead.
 
 ## PlaceholderAPI Placeholders
 
+**Player stats:**
 ```
-%simppay_total%                    - Player's total recharge
-%simppay_total_formatted%          - Formatted with đ suffix
-%simppay_total_daily/weekly/monthly/yearly%  - Timed totals
-%simppay_server_total%             - Server total
+%simppay_total%                    - Player's total recharge (raw number)
+%simppay_total_formatted%          - Formatted with xxx.xxxđ suffix
+%simppay_total_daily%              - Daily total (raw)
+%simppay_total_daily_formatted%    - Daily total formatted
+%simppay_total_weekly%             - Weekly total (raw)
+%simppay_total_weekly_formatted%   - Weekly total formatted
+%simppay_total_monthly%            - Monthly total (raw)
+%simppay_total_monthly_formatted%  - Monthly total formatted
+%simppay_total_yearly%             - Yearly total (raw)
+%simppay_total_yearly_formatted%   - Yearly total formatted
+%simppay_card_total%               - Card recharge total (raw)
+%simppay_card_total_formatted%     - Card total formatted
+%simppay_bank_total%               - Bank recharge total (raw)
+%simppay_bank_total_formatted%     - Bank total formatted
+```
+
+**Server stats:**
+```
+%simppay_server_total%             - Server total recharge (raw)
+%simppay_server_total_formatted%   - Server total formatted
+```
+
+**Streak info:**
+```
 %simppay_streak_current%           - Current streak days
 %simppay_streak_best%              - Best streak days
-%simppay_leaderboard_<type>_<rank>_name%    - Leaderboard player name
-%simppay_leaderboard_<type>_<rank>_amount%  - Leaderboard amount
+```
+
+**Leaderboard (requires cache):**
+```
+%simppay_leaderboard_<type>_<rank>_name%    - Player name at rank
+%simppay_leaderboard_<type>_<rank>_amount%  - Amount at rank
 ```
 Types: `all`, `daily`, `weekly`, `monthly`, `yearly`
+Example: `%simppay_leaderboard_all_1_name%` = #1 player name
 
-## Testing
+**Promo:**
+```
+%simppay_end_promo%                - End promo date (dd/MM/yyyy HH:mm format)
+```
 
-- No formal test suite
-- RCON reload: `./gradlew :simppay-paper:sendRconCommand`
-- Fake payments: `/simppayadmin fakecard`, `/simppayadmin fakebank`
+## Testing & Debugging
+
+**No formal test suite.** Use these approaches:
+
+**Fake payments (testing):**
+```
+/simppayadmin fakecard <player> <amount>   # Simulate card payment
+/simppayadmin fakebank <player> <amount>   # Simulate bank payment
+```
+
+**Config reload:**
+```
+/simppayadmin reload  # Reloads all configs + handler registry
+```
+
+**Debug logging:**
+Enable in `main-config.yml`:
+```yaml
+debug: true  # Shows debug messages via MessageUtil.debug()
+```
+
+**Payment lifecycle debugging:**
+1. Enable debug mode
+2. Initiate payment
+3. Check console for:
+   - Handler selection and config loading
+   - Payment status polling logs
+   - Event firing sequence
+   - Cache updates
+   - Milestone checks
+   - Streak calculations
+
+**Common issues:**
+- Missing API keys → Check `[card|banking]/<gateway>-config.yml`
+- Database connection → Check `database-config.yml` credentials
+- Handler not loading → Verify enum entry and class path in `HandlerRegistry`
+- Milestones not triggering → Check `MilestoneCompletion` table for duplicates

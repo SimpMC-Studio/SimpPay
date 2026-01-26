@@ -28,6 +28,6 @@ public class ReloadPlayerMilestoneCommand {
             MessageUtil.sendMessage(player, "Player not found");
             return;
         }
-        SPPlugin.getService(MilestoneService.class).loadPlayerMilestone(spPlayer.getUuid());
+        SPPlugin.getService(MilestoneService.class).refreshUnifiedMilestones(spPlayer.getUuid());
     }
 }
