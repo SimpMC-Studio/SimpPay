@@ -33,6 +33,9 @@ public class MilestoneService implements IService {
     // Countdown timer tracking (elapsed ticks since cycle start)
     public ConcurrentHashMap<UUID, Integer> cycleElapsedTicks = new ConcurrentHashMap<>();
 
+    // Cycle start time tracking (milliseconds) for smooth time-based progress
+    public ConcurrentHashMap<UUID, Long> cycleStartTimeMs = new ConcurrentHashMap<>();
+
     // Current amounts cache for smooth progress updates
     public ConcurrentHashMap<UUID, Double> currentAmountCache = new ConcurrentHashMap<>();
 
@@ -40,7 +43,6 @@ public class MilestoneService implements IService {
     public ConcurrentHashMap<UUID, Boolean> bossbarHidden = new ConcurrentHashMap<>();
 
     private MilestoneRepository milestoneRepository;
-
     /**
      * Gets the cycle duration in ticks from config.
      */
@@ -91,6 +93,7 @@ public class MilestoneService implements IService {
     /**
      * Updates BossBar progress with countdown timer.
      * Progress bar fills from 0% to 100% over the cycle duration.
+     * Uses system time instead of ticks for smooth, lag-independent progress.
      * Async-safe in PaperMC - Adventure API bossbars are thread-safe.
      */
     private void updateBossBarProgress(UUID uuid, int elapsedTicks) {
@@ -120,9 +123,14 @@ public class MilestoneService implements IService {
                         buildBossBarTitle(milestone.type, cachedAmount, milestone.targetAmount, milestone.isServerMilestone),
                         null
                 ));
-                // Use countdown progress for smooth refresh countdown visualization
-                float countdownProgress = (float) elapsedTicks / getCycleDurationTicks();
-                bossBar.progress(Math.min(1.0f, Math.max(0.0f, countdownProgress)));
+                // Use time-based progress calculation for smooth, lag-independent visualization
+                Long startTime = cycleStartTimeMs.get(uuid);
+                if (startTime != null) {
+                    long elapsedMs = System.currentTimeMillis() - startTime;
+                    long cycleDurationMs = getCycleDurationTicks() * 50L; // Convert ticks to ms (1 tick = 50ms)
+                    float countdownProgress = (float) elapsedMs / cycleDurationMs;
+                    bossBar.progress(Math.min(1.0f, Math.max(0.0f, countdownProgress)));
+                }
             }
         }
     }
@@ -245,6 +253,7 @@ public class MilestoneService implements IService {
 
         cyclingActive.put(uuid, true);
         cycleElapsedTicks.put(uuid, 0);  // Reset countdown
+        cycleStartTimeMs.put(uuid, System.currentTimeMillis());  // Record start time for time-based progress
 
         int updateFrequency = getUpdateFrequencyTicks();
 
@@ -253,18 +262,26 @@ public class MilestoneService implements IService {
                     if (!cyclingActive.getOrDefault(uuid, false)) {
                         task.cancel();
                         cycleElapsedTicks.remove(uuid);
+                        cycleStartTimeMs.remove(uuid);
                         return;
                     }
 
-                    int elapsed = cycleElapsedTicks.getOrDefault(uuid, 0);
-                    int cycleDuration = getCycleDurationTicks();
+                    Long startTime = cycleStartTimeMs.get(uuid);
+                    if (startTime == null) {
+                        return;
+                    }
 
-                    if (elapsed >= cycleDuration) {
+                    long elapsedMs = System.currentTimeMillis() - startTime;
+                    long cycleDurationMs = getCycleDurationTicks() * 50L; // Convert ticks to ms
+
+                    if (elapsedMs >= cycleDurationMs) {
                         // Cycle duration passed - cycle to next milestone
+                        cycleStartTimeMs.put(uuid, System.currentTimeMillis());
                         cycleElapsedTicks.put(uuid, 0);
                         cycleMilestone(uuid);
                     } else {
-                        // Update progress smoothly
+                        // Update progress smoothly (still track ticks for compatibility)
+                        int elapsed = cycleElapsedTicks.getOrDefault(uuid, 0);
                         updateBossBarProgress(uuid, elapsed);
                         cycleElapsedTicks.put(uuid, elapsed + updateFrequency);
                     }
@@ -293,6 +310,7 @@ public class MilestoneService implements IService {
             }
         }
         stopCyclingTask(uuid);
+        cycleStartTimeMs.remove(uuid);
         currentAmountCache.remove(uuid);
     }
 
@@ -325,6 +343,7 @@ public class MilestoneService implements IService {
         cyclingActive.clear();
         currentMilestones.clear();
         cycleElapsedTicks.clear();
+        cycleStartTimeMs.clear();
         currentAmountCache.clear();
         bossbarHidden.clear();
     }
