@@ -93,10 +93,12 @@ public final class SPPlugin extends JavaPlugin {
             throw new RuntimeException(e);
         }
         services.add(new OrderIDService());
+        services.add(new BankCacheService()); // Must be before other services that may need bank data
         services.add(new CacheDataService());
         services.add(new DatabaseService(database));
         services.add(new PaymentService());
         services.add(new MilestoneService());
+        services.add(new WebhookService()); // Webhook server for Sepay
 
         registerServices();
 
@@ -143,7 +145,8 @@ public final class SPPlugin extends JavaPlugin {
                 SuccessDatabaseHandlingListener.class,
                 CacheUpdaterListener.class,
                 MilestoneListener.class,
-                NaplandauListener.class
+                NaplandauListener.class,
+                org.simpmc.simppay.listener.internal.payment.SepayWebhookListener.class
         );
 
         for (Class<? extends Listener> listener : listeners) {

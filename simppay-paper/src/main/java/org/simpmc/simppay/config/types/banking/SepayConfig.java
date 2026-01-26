@@ -4,19 +4,21 @@ import de.exlll.configlib.Configuration;
 import org.simpmc.simppay.config.annotations.Folder;
 
 /**
- * Phase 4: Sepay banking integration configuration.
- * <p>
- * Get your API token from: https://my.sepay.vn/userapi/setting
+ * Sepay banking integration configuration - Webhook-based.
+ * 
+ * IMPORTANT: This configuration uses webhooks instead of API polling.
+ * You must configure webhooks in your Sepay dashboard:
+ * 1. Go to https://my.sepay.vn/webhooks
+ * 2. Create a new webhook with:
+ *    - Call URL: http://YOUR_SERVER_IP:WEBHOOK_PORT/sepay/webhook
+ *    - Authentication Type: API Key
+ *    - Request Content Type: application/json
+ *    - Event: Money In
+ * 3. Copy the API key and set it in webhookApiKey below
  */
 @Configuration
 @Folder("banking/sepay")
 public class SepayConfig {
-    /**
-     * Sepay API Bearer token for authentication
-     * Format: "Bearer YOUR_TOKEN_HERE"
-     */
-    public String apiToken = "YOUR_SEPAY_API_TOKEN_HERE";
-
     /**
      * Bank account number to receive payments
      * Example: "0071000888888"
@@ -24,14 +26,43 @@ public class SepayConfig {
     public String accountNumber = "YOUR_BANK_ACCOUNT_NUMBER";
 
     /**
-     * Bank brand name (for display purposes)
-     * Examples: "Vietcombank", "TechcomBank", "MBBank", etc.
+     * Bank name (must match VietQR shortName - case insensitive)
+     * Examples: "Vietcombank", "Techcombank", "MBBank", "VPBank", etc.
+     * 
+     * The BIN code will be automatically fetched from VietQR API based on this name.
+     * See https://api.vietqr.io/v2/banks for full list of supported banks.
      */
-    public String bankBrandName = "Your Bank Name";
+    public String bankName = "Vietcombank";
 
     /**
-     * Bank BIN code (first 6 digits of card number, for QR code generation)
-     * Examples: "970436" (Vietcombank), "970407" (TechcomBank)
+     * Webhook server port
+     * Make sure this port is open and accessible from the internet.
+     * Sepay needs to be able to send webhooks to this port.
      */
-    public String bin = "970436";
+    public int webhookPort = 8080;
+
+    /**
+     * Webhook endpoint path
+     * Full webhook URL will be: http://YOUR_SERVER_IP:webhookPort/webhookPath
+     */
+    public String webhookPath = "/sepay/webhook";
+
+    /**
+     * Webhook API key for authentication
+     * This key must match the one you configured in Sepay dashboard.
+     * Sepay will send this in the Authorization header as: "APIkey_YOUR_KEY"
+     * 
+     * IMPORTANT: Keep this secret! Do not share it publicly.
+     */
+    public String webhookApiKey = "YOUR_WEBHOOK_API_KEY_HERE";
+
+    /**
+     * Prefix for payment description/reference codes.
+     * This is added before the 10-character reference code.
+     * Example: "smc123" -> description = "smc123ABC1234567"
+     * 
+     * The full description is used to match incoming webhook payments.
+     */
+    public String descriptionPrefix = "smc123";
 }
+

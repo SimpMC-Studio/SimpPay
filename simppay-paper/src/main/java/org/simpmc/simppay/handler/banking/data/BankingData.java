@@ -18,4 +18,7 @@ public class BankingData {
 
     @Nullable
     public String qrString;
+
+    @Nullable
+    public String qrImageUrl;
 }
