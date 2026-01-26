@@ -98,5 +98,3 @@ SimpPay
 - General plugin settings are in `main-config.yml`, messages are in `message-config.yml`
 - Configure cumulative recharge milestones in `moc-nap-config.yml` and `moc-nap-server-config.yml`
 - Configure first-time recharge commands in `naplandau-config.yml`
-
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")

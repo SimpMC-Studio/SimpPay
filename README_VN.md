@@ -98,5 +98,3 @@ SimpPay
 - Cài đặt chung của plugin được đặt tại `config.yml`, các message đặt tại `messages.yml`
 - Cài đặt mốc nạp tích luỹ tại `moc-nap-config.yml` và `moc-nap-server-config.yml`
 - Cài đặt lệnh nạp lần đầu tại `naplandau-config.yml`
-
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
