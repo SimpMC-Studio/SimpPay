@@ -28,15 +28,14 @@ import java.util.concurrent.atomic.AtomicLong;
 @Getter
 public class CacheDataService implements IService {
 
+    private static final long LEADERBOARD_TTL = 60000; // 1 minute in milliseconds
     private static CacheDataService instance;
-
     // Player-level caches
     private final ConcurrentHashMap<UUID, AtomicLong> playerTotalValue = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, AtomicLong> playerDailyTotalValue = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, AtomicLong> playerWeeklyTotalValue = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, AtomicLong> playerMonthlyTotalValue = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, AtomicLong> playerYearlyTotalValue = new ConcurrentHashMap<>();
-
     // Server-level caches
     private final AtomicLong serverTotalValue = new AtomicLong(0);
     private final AtomicLong serverDailyTotalValue = new AtomicLong(0);
@@ -45,11 +44,13 @@ public class CacheDataService implements IService {
     private final AtomicLong serverYearlyTotalValue = new AtomicLong(0);
     private final AtomicLong cardTotalValue = new AtomicLong(0);
     private final AtomicLong bankTotalValue = new AtomicLong(0);
-
     // Leaderboard caches with TTL
     private final ConcurrentHashMap<String, List<LeaderboardEntry>> leaderboardCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> leaderboardExpiry = new ConcurrentHashMap<>();
-    private static final long LEADERBOARD_TTL = 60000; // 1 minute in milliseconds
+
+    public static CacheDataService getInstance() {
+        return instance;
+    }
 
     @Override
     public void setup() {
@@ -249,9 +250,5 @@ public class CacheDataService implements IService {
         playerWeeklyTotalValue.remove(playerUUID);
         playerMonthlyTotalValue.remove(playerUUID);
         playerYearlyTotalValue.remove(playerUUID);
-    }
-
-    public static CacheDataService getInstance() {
-        return instance;
     }
 }

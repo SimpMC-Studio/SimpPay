@@ -3,19 +3,11 @@ package org.simpmc.simppay.handler;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
 import org.simpmc.simppay.data.PaymentStatus;
 import org.simpmc.simppay.model.PaymentResult;
 import org.simpmc.simppay.model.detail.CardDetail;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -98,11 +90,11 @@ public abstract class CardHandler implements CardAdapter, PaymentHandler {
     protected PaymentResult getNencerAPIResult(CardDetail detail, String response) {
         JsonObject jsonResponse = JsonParser.parseString(response).getAsJsonObject();
         if (jsonResponse.get("status").getAsInt() == 1) {
-                return new PaymentResult(
-                        PaymentStatus.SUCCESS,
-                        (int) detail.getAmount(),
-                        jsonResponse.get("message").getAsString()
-                );
+            return new PaymentResult(
+                    PaymentStatus.SUCCESS,
+                    (int) detail.getAmount(),
+                    jsonResponse.get("message").getAsString()
+            );
 
         }
         if (jsonResponse.get("status").getAsInt() == 2) {

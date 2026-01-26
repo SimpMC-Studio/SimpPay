@@ -106,7 +106,7 @@ public class BankPromptListener implements Listener {
      */
     private byte[] convertImageToMapBytes(BufferedImage original) {
         final int TARGET = 128;
-        
+
         // Scale image to 128x128 if needed
         BufferedImage scaled;
         if (original.getWidth() != TARGET || original.getHeight() != TARGET) {

@@ -345,6 +345,7 @@ public class PaymentLogService {
     /**
      * Batch query optimization - retrieves all time period amounts in optimized queries
      * Reduces 5 separate database calls to more efficient batched processing
+     *
      * @param playerId Player to query
      * @return Map with keys: "total", "daily", "weekly", "monthly", "yearly"
      */
@@ -386,10 +387,18 @@ public class PaymentLogService {
                 long timestamp = payment.getTimestamp();
                 total += amount;
 
-                if (timestamp >= startOfDay && timestamp <= endOfDay) daily += amount;
-                if (timestamp >= startOfWeek && timestamp <= endOfWeek) weekly += amount;
-                if (timestamp >= startOfMonth && timestamp <= endOfMonth) monthly += amount;
-                if (timestamp >= startOfYear && timestamp <= endOfYear) yearly += amount;
+                if (timestamp >= startOfDay && timestamp <= endOfDay) {
+                    daily += amount;
+                }
+                if (timestamp >= startOfWeek && timestamp <= endOfWeek) {
+                    weekly += amount;
+                }
+                if (timestamp >= startOfMonth && timestamp <= endOfMonth) {
+                    monthly += amount;
+                }
+                if (timestamp >= startOfYear && timestamp <= endOfYear) {
+                    yearly += amount;
+                }
             }
 
             for (CardPayment payment : allCardPayments) {
@@ -397,10 +406,18 @@ public class PaymentLogService {
                 long timestamp = payment.getTimestamp();
                 total += amount;
 
-                if (timestamp >= startOfDay && timestamp <= endOfDay) daily += amount;
-                if (timestamp >= startOfWeek && timestamp <= endOfWeek) weekly += amount;
-                if (timestamp >= startOfMonth && timestamp <= endOfMonth) monthly += amount;
-                if (timestamp >= startOfYear && timestamp <= endOfYear) yearly += amount;
+                if (timestamp >= startOfDay && timestamp <= endOfDay) {
+                    daily += amount;
+                }
+                if (timestamp >= startOfWeek && timestamp <= endOfWeek) {
+                    weekly += amount;
+                }
+                if (timestamp >= startOfMonth && timestamp <= endOfMonth) {
+                    monthly += amount;
+                }
+                if (timestamp >= startOfYear && timestamp <= endOfYear) {
+                    yearly += amount;
+                }
             }
 
             amounts.put("total", total);

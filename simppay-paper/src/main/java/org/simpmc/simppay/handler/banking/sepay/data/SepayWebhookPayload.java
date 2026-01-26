@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 /**
  * Data model for Sepay webhook payload.
  * Matches the JSON structure sent by Sepay when a transaction occurs.
- * 
+ * <p>
  * Documentation: https://developer.sepay.vn/en/sepay-webhooks/tich-hop-webhook
  */
 @Data

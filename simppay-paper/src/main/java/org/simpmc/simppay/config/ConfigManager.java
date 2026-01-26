@@ -1,6 +1,9 @@
 package org.simpmc.simppay.config;
 
-import de.exlll.configlib.*;
+import de.exlll.configlib.ConfigLib;
+import de.exlll.configlib.NameFormatters;
+import de.exlll.configlib.YamlConfigurationProperties;
+import de.exlll.configlib.YamlConfigurationStore;
 import lombok.Getter;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;

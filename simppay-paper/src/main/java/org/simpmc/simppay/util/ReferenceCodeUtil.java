@@ -12,7 +12,7 @@ public class ReferenceCodeUtil {
 
     /**
      * Generates a random 10-character alphanumeric reference code.
-     * 
+     *
      * @return A 10-character uppercase alphanumeric string
      */
     public static String generate() {
@@ -25,7 +25,7 @@ public class ReferenceCodeUtil {
 
     /**
      * Generates a full reference code with the given prefix.
-     * 
+     *
      * @param prefix The prefix to prepend (e.g., "smc123")
      * @return The full reference code (prefix + 10-char code)
      */

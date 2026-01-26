@@ -58,27 +58,6 @@ public class MilestoneService implements IService {
     }
 
     /**
-     * Helper class to store milestone display information for cycling.
-     */
-    public static class MilestoneDisplayData {
-        public final MilestoneType type;
-        public final double targetAmount;
-        public final BossBar.Color color;
-        public final BossBar.Overlay style;
-        public final boolean isServerMilestone;
-
-        public MilestoneDisplayData(MilestoneType type, double targetAmount,
-                                    BossBar.Color color, BossBar.Overlay style, boolean isServerMilestone) {
-            this.type = type;
-            this.targetAmount = targetAmount;
-            this.color = color;
-            this.style = style;
-            this.isServerMilestone = isServerMilestone;
-        }
-    }
-
-
-    /**
      * Builds BossBar title: "[Player/Server] Mốc nạp {Type}: {current} / {target}"
      * Uses short-form currency formatting (k, tr, tỷ).
      */
@@ -116,13 +95,19 @@ public class MilestoneService implements IService {
      */
     private void updateBossBarProgress(UUID uuid, int elapsedTicks) {
         BossBar bossBar = unifiedBossBar.get(uuid);
-        if (bossBar == null) return;
+        if (bossBar == null) {
+            return;
+        }
 
         List<MilestoneDisplayData> milestones = activeMilestones.get(uuid);
-        if (milestones == null || milestones.isEmpty()) return;
+        if (milestones == null || milestones.isEmpty()) {
+            return;
+        }
 
         int currentIndex = cycleIndex.getOrDefault(uuid, 0);
-        if (currentIndex >= milestones.size()) return;
+        if (currentIndex >= milestones.size()) {
+            return;
+        }
 
         MilestoneDisplayData milestone = milestones.get(currentIndex);
         Double cachedAmount = currentAmountCache.get(uuid);
@@ -132,8 +117,8 @@ public class MilestoneService implements IService {
             if (player != null && player.isOnline()) {
                 // Async-safe: Adventure API bossbars are thread-safe in PaperMC
                 bossBar.name(MessageUtil.getComponentParsed(
-                    buildBossBarTitle(milestone.type, cachedAmount, milestone.targetAmount, milestone.isServerMilestone),
-                    null
+                        buildBossBarTitle(milestone.type, cachedAmount, milestone.targetAmount, milestone.isServerMilestone),
+                        null
                 ));
                 // Use countdown progress for smooth refresh countdown visualization
                 float countdownProgress = (float) elapsedTicks / getCycleDurationTicks();
@@ -172,7 +157,9 @@ public class MilestoneService implements IService {
             PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
             SPPlayer player = SPPlugin.getService(DatabaseService.class).getPlayerService().findByUuid(uuid);
 
-            if (player == null) return;
+            if (player == null) {
+                return;
+            }
 
             double currentAmount;
             if (milestone.isServerMilestone) {
@@ -309,7 +296,6 @@ public class MilestoneService implements IService {
         currentAmountCache.remove(uuid);
     }
 
-
     @Override
     public void setup() {
         milestoneRepository = new MilestoneRepository();
@@ -354,7 +340,9 @@ public class MilestoneService implements IService {
             PaymentLogService paymentLogService = SPPlugin.getService(DatabaseService.class).getPaymentLogService();
             SPPlayer player = SPPlugin.getService(DatabaseService.class).getPlayerService().findByUuid(uuid);
 
-            if (player == null) return;
+            if (player == null) {
+                return;
+            }
 
             MilestonesPlayerConfig playerConfig = ConfigManager.getInstance().getConfig(MilestonesPlayerConfig.class);
             MilestonesServerConfig serverConfig = ConfigManager.getInstance().getConfig(MilestonesServerConfig.class);
@@ -641,6 +629,26 @@ public class MilestoneService implements IService {
      */
     public boolean isBossBarHidden(UUID uuid) {
         return bossbarHidden.getOrDefault(uuid, false);
+    }
+
+    /**
+     * Helper class to store milestone display information for cycling.
+     */
+    public static class MilestoneDisplayData {
+        public final MilestoneType type;
+        public final double targetAmount;
+        public final BossBar.Color color;
+        public final BossBar.Overlay style;
+        public final boolean isServerMilestone;
+
+        public MilestoneDisplayData(MilestoneType type, double targetAmount,
+                                    BossBar.Color color, BossBar.Overlay style, boolean isServerMilestone) {
+            this.type = type;
+            this.targetAmount = targetAmount;
+            this.color = color;
+            this.style = style;
+            this.isServerMilestone = isServerMilestone;
+        }
     }
 
 }

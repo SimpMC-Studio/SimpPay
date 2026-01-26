@@ -16,9 +16,9 @@ import java.util.logging.Logger;
  * Includes initialization, player detection, and form sending with proper error handling.
  */
 public class FloodgateUtil {
+    private static final Logger LOGGER = Logger.getLogger(FloodgateUtil.class.getName());
     private static FloodgateApi floodgateApi;
     private static boolean initialized = false;
-    private static final Logger LOGGER = Logger.getLogger(FloodgateUtil.class.getName());
 
     /**
      * Initializes the Floodgate API connection.

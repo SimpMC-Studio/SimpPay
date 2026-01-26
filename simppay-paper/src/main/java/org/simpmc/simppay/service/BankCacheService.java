@@ -3,7 +3,6 @@ package org.simpmc.simppay.service;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.handler.banking.sepay.data.BankData;
 import org.simpmc.simppay.handler.banking.sepay.data.VietQRResponse;
 import org.simpmc.simppay.util.GsonUtil;
@@ -20,14 +19,14 @@ import java.util.concurrent.CompletableFuture;
  */
 public class BankCacheService implements IService {
     private static final String VIETQR_API_URL = "https://api.vietqr.io/v2/banks";
-    
+
     private final Map<String, BankData> bankCache = new HashMap<>();
     private boolean loaded = false;
 
     @Override
     public void setup() {
         MessageUtil.info("[BankCache] Starting async fetch from VietQR API...");
-        
+
         // Fetch bank data asynchronously
         fetchBankDataAsync().thenAccept(success -> {
             if (success) {
@@ -52,38 +51,38 @@ public class BankCacheService implements IService {
 
     /**
      * Fetch bank data from VietQR API asynchronously
-     * 
+     *
      * @return CompletableFuture that completes with true if successful
      */
     private CompletableFuture<Boolean> fetchBankDataAsync() {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 OkHttpClient client = new OkHttpClient.Builder().build();
-                
+
                 Request request = new Request.Builder()
                         .url(VIETQR_API_URL)
                         .get()
                         .build();
-                
+
                 try (Response response = client.newCall(request).execute()) {
                     if (!response.isSuccessful()) {
                         MessageUtil.warn("[BankCache] HTTP error: " + response.code());
                         return false;
                     }
-                    
+
                     String responseBody = response.body().string();
                     VietQRResponse vietQRResponse = GsonUtil.getGson().fromJson(responseBody, VietQRResponse.class);
-                    
+
                     if (vietQRResponse == null || !vietQRResponse.isSuccess()) {
                         MessageUtil.warn("[BankCache] Invalid response from VietQR API");
                         return false;
                     }
-                    
+
                     if (!vietQRResponse.hasData()) {
                         MessageUtil.warn("[BankCache] No bank data in response");
                         return false;
                     }
-                    
+
                     // Cache banks with lowercase keys for case-insensitive lookup
                     synchronized (bankCache) {
                         bankCache.clear();
@@ -95,7 +94,7 @@ public class BankCacheService implements IService {
                             }
                         }
                     }
-                    
+
                     return true;
                 }
             } catch (IOException e) {
@@ -108,7 +107,7 @@ public class BankCacheService implements IService {
 
     /**
      * Get bank data by bank name (case-insensitive)
-     * 
+     *
      * @param bankName Bank name to search for (matches shortName field)
      * @return BankData if found, null otherwise
      */
@@ -116,7 +115,7 @@ public class BankCacheService implements IService {
         if (bankName == null || bankName.isEmpty()) {
             return null;
         }
-        
+
         String key = bankName.toLowerCase();
         synchronized (bankCache) {
             return bankCache.get(key);
@@ -125,7 +124,7 @@ public class BankCacheService implements IService {
 
     /**
      * Check if bank cache is loaded
-     * 
+     *
      * @return true if cache is loaded
      */
     public boolean isLoaded() {
@@ -134,7 +133,7 @@ public class BankCacheService implements IService {
 
     /**
      * Get the number of cached banks
-     * 
+     *
      * @return number of banks in cache
      */
     public int getCacheSize() {

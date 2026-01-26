@@ -31,7 +31,7 @@ public class SepayWebhookListener implements Listener {
     @EventHandler
     public void onWebhookReceived(SepayWebhookReceivedEvent event) {
         SepayWebhookPayload payload = event.getPayload();
-        
+
         MessageUtil.debug("[SepayWebhook] Processing webhook - Amount: " + payload.getTransferAmount());
         MessageUtil.debug("[SepayWebhook] Content: " + payload.getContent());
 
@@ -55,18 +55,18 @@ public class SepayWebhookListener implements Listener {
         // Verify amount matches
         double expectedAmount = matchedPayment.getDetail().getAmount();
         if (Math.abs(expectedAmount - payload.getTransferAmount()) > 0.01) {
-            MessageUtil.warn("[SepayWebhook] Amount mismatch! Expected: " + expectedAmount + 
-                    ", Received: " + payload.getTransferAmount() + 
+            MessageUtil.warn("[SepayWebhook] Amount mismatch! Expected: " + expectedAmount +
+                    ", Received: " + payload.getTransferAmount() +
                     ", RefID: " + matchedPayment.getDetail().getRefID());
             // Still process but log warning - the reference code matched
         }
 
         // Update the payment with webhook transaction ID
         matchedPayment.getDetail().setRefID(String.valueOf(payload.getId()));
-        
+
         // Remove from polling payments since webhook confirmed it
         paymentService.getPollingPayments().remove(matchedPayment.getPaymentID());
-        
+
         // Fire success event on main thread
         plugin.getFoliaLib().getScheduler().runNextTick(task -> {
             Bukkit.getPluginManager().callEvent(new PaymentSuccessEvent(matchedPayment));
@@ -76,37 +76,37 @@ public class SepayWebhookListener implements Listener {
     /**
      * Find a pending payment that matches the reference code in webhook content.
      * The content field contains the bank transfer description which should include our reference code.
-     * 
+     *
      * @param content Webhook content/description field
      * @return Matching payment or null if not found
      */
     private Payment findMatchingPayment(String content) {
         SepayConfig config = ConfigManager.getInstance().getConfig(SepayConfig.class);
         String prefix = config.descriptionPrefix;
-        
+
         // First check polling payments (payments being actively checked)
         for (Payment payment : paymentService.getPollingPayments().values()) {
             if (isReferenceMatch(payment, content, prefix)) {
                 return payment;
             }
         }
-        
+
         // Then check regular payments map
         for (Payment payment : paymentService.getPayments().values()) {
             if (isReferenceMatch(payment, content, prefix)) {
                 return payment;
             }
         }
-        
+
         return null;
     }
 
     /**
      * Check if payment reference code is found in webhook content.
-     * 
+     *
      * @param payment Payment to check
      * @param content Webhook content
-     * @param prefix Expected reference code prefix
+     * @param prefix  Expected reference code prefix
      * @return true if reference code matches
      */
     private boolean isReferenceMatch(Payment payment, String content, String prefix) {
@@ -114,7 +114,7 @@ public class SepayWebhookListener implements Listener {
         if (refID == null || !refID.startsWith(prefix)) {
             return false;
         }
-        
+
         // Check if the reference code is contained in the webhook content
         // Bank transfer descriptions may have additional text, so we use contains
         return content.toUpperCase().contains(refID.toUpperCase());

@@ -82,6 +82,7 @@ public class MessageUtil {
     public static void info(String message) {
         SPPlugin.getInstance().getLogger().info(message);
     }
+
     public static void warn(String message) {
         SPPlugin.getInstance().getLogger().warning(message);
     }
@@ -101,7 +102,7 @@ public class MessageUtil {
      * Use for critical payment failures with exception context.
      *
      * @param message The error message to log
-     * @param e The exception that caused the error
+     * @param e       The exception that caused the error
      */
     public static void error(String message, Throwable e) {
         SPPlugin.getInstance().getLogger().severe(message + " | Exception: " + e.getClass().getSimpleName() + ": " + e.getMessage());

@@ -9,11 +9,8 @@ import com.github.retrooper.packetevents.protocol.nbt.NBTInt;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMapData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot;
 import org.bukkit.entity.Player;
-import org.bukkit.map.MapPalette;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.BankingConfig;
-
-import java.util.Arrays;
 
 public class MapQR {
     public static void sendPacketQRMap(byte[] mapBytes, Player player) {

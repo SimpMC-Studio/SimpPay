@@ -22,13 +22,13 @@ public class SepayWebhookReceivedEvent extends Event {
     }
 
     @NotNull
-    @Override
-    public HandlerList getHandlers() {
+    public static HandlerList getHandlerList() {
         return HANDLERS;
     }
 
     @NotNull
-    public static HandlerList getHandlerList() {
+    @Override
+    public HandlerList getHandlers() {
         return HANDLERS;
     }
 }

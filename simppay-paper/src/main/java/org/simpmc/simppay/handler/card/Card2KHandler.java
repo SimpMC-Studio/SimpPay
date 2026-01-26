@@ -3,7 +3,6 @@ package org.simpmc.simppay.handler.card;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.bukkit.Bukkit;
-import org.jetbrains.annotations.NotNull;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.card.Card2KConfig;
 import org.simpmc.simppay.data.PaymentStatus;

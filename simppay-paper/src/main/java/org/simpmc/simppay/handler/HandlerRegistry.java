@@ -38,7 +38,8 @@ public class HandlerRegistry {
         bankHandler = bankingConfig.bankApi.handlerClass.getDeclaredConstructor().newInstance();
         try {
             coinsHandler = (CoinsHandler) coinsConfig.pointsProvider.handlerClass.getDeclaredConstructor().newInstance();
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
             MessageUtil.warn("Unable to find any compatible Points plugin provider, voiding all coins manipulation");
             coinsHandler = new DefaultCoinsHandler();
         }

@@ -51,7 +51,7 @@ public class SepayHandler extends BankHandler {
         // Get BIN from cached bank data
         BankCacheService bankCache = SPPlugin.getService(BankCacheService.class);
         BankData bankData = bankCache.getBankByName(config.bankName);
-        
+
         if (bankData == null) {
             MessageUtil.warn("[Sepay-ProcessPayment] Bank not found in cache: " + config.bankName);
             MessageUtil.warn("[Sepay-ProcessPayment] Using default BIN. Please check your bankName configuration.");
@@ -119,9 +119,9 @@ public class SepayHandler extends BankHandler {
      * Builds the remote QR image URL from qr.sepay.vn
      *
      * @param accountNumber Bank account number
-     * @param bankName Bank name (e.g., "Vietcombank")
-     * @param amount Payment amount
-     * @param description Payment description (reference code)
+     * @param bankName      Bank name (e.g., "Vietcombank")
+     * @param amount        Payment amount
+     * @param description   Payment description (reference code)
      * @return QR image URL
      */
     private String buildQrImageUrl(String accountNumber, String bankName, int amount, String description) {

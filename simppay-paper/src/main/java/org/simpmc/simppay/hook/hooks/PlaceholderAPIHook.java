@@ -28,10 +28,9 @@ import java.util.regex.Pattern;
  * - Streak: streak_current, streak_best (Phase 5)
  */
 public class PlaceholderAPIHook extends PlaceholderExpansion {
-    private final SPPlugin plugin;
-
     // Regex pattern for leaderboard placeholders: top_(daily|weekly|monthly|alltime)_(\d+)_(name|value)
     private static final Pattern LEADERBOARD_PATTERN = Pattern.compile("^top_(daily|weekly|monthly|alltime)_(\\d+)_(name|value)$");
+    private final SPPlugin plugin;
 
     public PlaceholderAPIHook(SPPlugin plugin) {
         this.plugin = plugin;
@@ -200,9 +199,9 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
      * Handles leaderboard placeholder requests
      *
      * @param cacheService Cache service instance
-     * @param typeStr Type string (daily, weekly, monthly, alltime)
-     * @param rank Rank position (1-based)
-     * @param field Field to return (name or value)
+     * @param typeStr      Type string (daily, weekly, monthly, alltime)
+     * @param rank         Rank position (1-based)
+     * @param field        Field to return (name or value)
      * @return Placeholder value or "N/A" if not found
      */
     private String handleLeaderboardPlaceholder(CacheDataService cacheService, String typeStr, int rank, String field) {
@@ -243,8 +242,8 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
      * Gets player timed value from cache
      *
      * @param cacheService Cache service instance
-     * @param uuid Player UUID
-     * @param period Period type (daily, weekly, monthly, yearly)
+     * @param uuid         Player UUID
+     * @param period       Period type (daily, weekly, monthly, yearly)
      * @return Value as string or "0" if not found
      */
     private String getPlayerTimedValue(CacheDataService cacheService, UUID uuid, String period) {

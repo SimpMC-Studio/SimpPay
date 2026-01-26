@@ -40,16 +40,16 @@ public class WebhookService implements IService {
         try {
             // Create HTTP server
             server = HttpServer.create(new InetSocketAddress(config.webhookPort), 0);
-            
+
             // Register webhook endpoint
             server.createContext(config.webhookPath, new SepayWebhookHandler());
-            
+
             // Use virtual thread executor for better performance
             server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-            
+
             // Start server
             server.start();
-            
+
             MessageUtil.info("[WebhookService] Server started on port " + config.webhookPort);
             MessageUtil.info("[WebhookService] Webhook URL: http://YOUR_SERVER_IP:" + config.webhookPort + config.webhookPath);
         } catch (IOException e) {
@@ -120,9 +120,9 @@ public class WebhookService implements IService {
                     return;
                 }
 
-                MessageUtil.info("[Webhook] Received transaction: ID=" + payload.getId() + 
-                               ", Amount=" + payload.getTransferAmount() + 
-                               ", Content=" + payload.getContent());
+                MessageUtil.info("[Webhook] Received transaction: ID=" + payload.getId() +
+                        ", Amount=" + payload.getTransferAmount() +
+                        ", Content=" + payload.getContent());
 
                 // Fire event on main thread
                 SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> {
