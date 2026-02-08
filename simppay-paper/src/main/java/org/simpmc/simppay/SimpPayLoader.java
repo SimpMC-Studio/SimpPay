@@ -28,8 +28,7 @@ public class SimpPayLoader implements PluginLoader {
                 "com.zaxxer:HikariCP:6.3.0",
                 "com.h2database:h2:2.3.232",
                 "org.projectlombok:lombok:1.18.34",
-                "commons-codec:commons-codec:1.18.0",
-                "net.wesjd:anvilgui:2.0.4-SNAPSHOT"
+                "commons-codec:commons-codec:1.18.0"
         );
 
         list.forEach(artifact -> {
