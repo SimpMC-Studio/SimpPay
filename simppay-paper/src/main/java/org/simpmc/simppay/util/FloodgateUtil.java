@@ -13,7 +13,8 @@ import java.util.logging.Logger;
  * Phase 7: Enhanced Floodgate Utility
  * <p>
  * Provides helper methods for Floodgate integration (Bedrock player support).
- * Includes initialization, player detection, and form sending with proper error handling.
+ * Includes initialization, player detection, and form sending with proper error
+ * handling.
  */
 public class FloodgateUtil {
     private static final Logger LOGGER = Logger.getLogger(FloodgateUtil.class.getName());
@@ -66,20 +67,7 @@ public class FloodgateUtil {
             return false;
         }
 
-        UUID uuid = player.getUniqueId();
-
-        // Primary method: Use Floodgate API
-        if (initialized && floodgateApi != null) {
-            try {
-                return floodgateApi.isFloodgatePlayer(uuid);
-            } catch (Exception e) {
-                LOGGER.warning("Error checking if player is Bedrock via API: " + e.getMessage());
-            }
-        }
-
-        // Fallback method: Check UUID pattern
-        // Floodgate UUIDs have most significant bits set to 0
-        return uuid.getMostSignificantBits() == 0;
+        return isBedrockPlayer(player.getUniqueId());
     }
 
     /**
@@ -93,14 +81,20 @@ public class FloodgateUtil {
             return false;
         }
 
+        // Primary method: Use Floodgate API (most reliable)
         if (initialized && floodgateApi != null) {
             try {
                 return floodgateApi.isFloodgatePlayer(uuid);
             } catch (Exception e) {
                 LOGGER.warning("Error checking UUID via Floodgate API: " + e.getMessage());
+                // Only fall back to UUID pattern if API throws exception
+                return uuid.getMostSignificantBits() == 0;
             }
         }
 
+        // Fallback method: Check UUID pattern
+        // ONLY used when Floodgate is NOT initialized (plugin not available)
+        // Floodgate UUIDs have most significant bits set to 0
         return uuid.getMostSignificantBits() == 0;
     }
 
@@ -108,7 +102,8 @@ public class FloodgateUtil {
      * Gets the Bedrock username for a player (without the prefix).
      *
      * @param player Player to get username for
-     * @return Bedrock username, or player's regular username if not a Bedrock player
+     * @return Bedrock username, or player's regular username if not a Bedrock
+     *         player
      */
     public static String getBedrockUsername(Player player) {
         if (player == null) {
