@@ -74,7 +74,7 @@ public class W2MHandler extends BankHandler {
             response = get(url).get();
             MessageUtil.debug("[W2M-GetTransactionResult] Response: " + response);
         } catch (InterruptedException | ExecutionException e) {
-            MessageUtil.debug("[W2M-GetTransactionResult] Error while getting transaction result: " + e.getMessage());
+            MessageUtil.warn("[W2M-GetTransactionResult] Error while getting transaction result: " + e.getMessage());
             return new PaymentResult(
                     PaymentStatus.FAILED,
                     (int) detail.getAmount(),
@@ -86,12 +86,12 @@ public class W2MHandler extends BankHandler {
         try {
             w2mResponse = GsonUtil.getGson().fromJson(response, W2MReponse.class);
         } catch (Exception ex) {
-            MessageUtil.debug("[W2M-GetTransactionResult] Invalid JSON response: " + ex.getMessage());
+            MessageUtil.warn("[W2M-GetTransactionResult] Invalid JSON response: " + ex.getMessage());
             w2mResponse = null;
         }
         // 4 check if response is valid
         if (w2mResponse == null) {
-            MessageUtil.debug("[W2M-GetTransactionResult] Response is not valid");
+            MessageUtil.warn("[W2M-GetTransactionResult] Response is not valid");
             return new PaymentResult(
                     PaymentStatus.FAILED,
                     (int) detail.getAmount(),
@@ -101,8 +101,8 @@ public class W2MHandler extends BankHandler {
         }
         // 5 check if response status is true
         if (!w2mResponse.getStatus()) {
-            MessageUtil.debug("[W2M-GetTransactionResult] Invalid login or token");
-            MessageUtil.debug("[W2M-GetTransactionResult] " + w2mResponse);
+            MessageUtil.warn("[W2M-GetTransactionResult] Invalid login or token");
+            MessageUtil.warn("[W2M-GetTransactionResult] " + w2mResponse);
             return new PaymentResult(
                     PaymentStatus.FAILED,
                     (int) detail.getAmount(),

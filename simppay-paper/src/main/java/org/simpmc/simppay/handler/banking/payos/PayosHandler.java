@@ -47,7 +47,7 @@ public class PayosHandler extends BankHandler {
         try {
             request = requestTransaction(detail).get();
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            MessageUtil.error("[PayOS-ProcessPayment] Failed to create payment request", e);
             return PaymentStatus.FAILED;
         }
         if (request == null || request.getData() == null) {
@@ -90,7 +90,7 @@ public class PayosHandler extends BankHandler {
         try {
             res = getTransactionStatus(detail.getRefID()).get();
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            MessageUtil.error("[PayOS-GetTransactionResult] Failed to get transaction status", e);
             return new PaymentResult(PaymentStatus.FAILED, 0, null);
         }
         if (res == null || res.getData() == null) {
@@ -122,7 +122,7 @@ public class PayosHandler extends BankHandler {
                 return PaymentStatus.CANCELLED;
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            MessageUtil.error("[PayOS-Cancel] Failed to cancel payment", e);
             return PaymentStatus.FAILED;
         }
         return PaymentStatus.FAILED;
@@ -139,6 +139,7 @@ public class PayosHandler extends BankHandler {
                 String response = get(url, config);
                 return GsonUtil.getGson().fromJson(response, PayosResponse.class);
             } catch (IOException e) {
+                MessageUtil.warn("[PayOS-GetTransactionStatus] Network error: " + e.getMessage());
                 throw new RuntimeException(e);
             }
         });
@@ -159,6 +160,7 @@ public class PayosHandler extends BankHandler {
                         "}");
                 return GsonUtil.getGson().fromJson(response, PayosResponse.class);
             } catch (IOException e) {
+                MessageUtil.warn("[PayOS-Cancel] Network error: " + e.getMessage());
                 throw new RuntimeException(e);
             }
         });
@@ -202,6 +204,7 @@ public class PayosHandler extends BankHandler {
                 return GsonUtil.getGson().fromJson(response, PayosResponse.class);
 
             } catch (Exception e) {
+                MessageUtil.warn("[PayOS-RequestTransaction] Failed to create transaction: " + e.getMessage());
                 throw new RuntimeException(e);
             }
         });

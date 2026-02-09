@@ -5,6 +5,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import org.simpmc.simppay.util.MessageUtil;
+
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
@@ -63,6 +65,7 @@ public abstract class BankHandler implements PaymentHandler {
                 Response response = call.execute();
                 return response.body().string();
             } catch (IOException e) {
+                MessageUtil.warn("[BankHandler] GET request failed for URL: " + url + " - " + e.getMessage());
                 throw new RuntimeException(e);
             }
         });

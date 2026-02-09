@@ -49,8 +49,11 @@ public class CacheUpdaterListener implements Listener {
     public void onPaymentSuccess(PaymentSuccessEvent event) {
         SPPlugin plugin = SPPlugin.getInstance();
 
-        // SYNCHRONOUS player cache update - NO DELAY, real-time milestone and placeholder updates!
-        SPPlugin.getService(CacheDataService.class).updatePlayerCacheSync(event.getPlayerUUID());
+        // Async player cache update - ConcurrentHashMap + AtomicLong is thread-safe
+        // Avoids blocking global/main thread which caused HikariCP pool exhaustion
+        plugin.getFoliaLib().getScheduler().runAsync(task -> {
+            SPPlugin.getService(CacheDataService.class).updatePlayerCacheSync(event.getPlayerUUID());
+        });
 
         // Async server cache update (less critical, can be delayed slightly)
         plugin.getFoliaLib().getScheduler().runAsync(task2 -> {

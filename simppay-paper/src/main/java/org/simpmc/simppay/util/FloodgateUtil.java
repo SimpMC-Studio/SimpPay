@@ -65,21 +65,9 @@ public class FloodgateUtil {
         if (player == null) {
             return false;
         }
-
         UUID uuid = player.getUniqueId();
-
-        // Primary method: Use Floodgate API
-        if (initialized && floodgateApi != null) {
-            try {
-                return floodgateApi.isFloodgatePlayer(uuid);
-            } catch (Exception e) {
-                LOGGER.warning("Error checking if player is Bedrock via API: " + e.getMessage());
-            }
-        }
-
-        // Fallback method: Check UUID pattern
-        // Floodgate UUIDs have most significant bits set to 0
         return uuid.getMostSignificantBits() == 0;
+
     }
 
     /**
@@ -93,89 +81,9 @@ public class FloodgateUtil {
             return false;
         }
 
-        if (initialized && floodgateApi != null) {
-            try {
-                return floodgateApi.isFloodgatePlayer(uuid);
-            } catch (Exception e) {
-                LOGGER.warning("Error checking UUID via Floodgate API: " + e.getMessage());
-            }
-        }
 
         return uuid.getMostSignificantBits() == 0;
-    }
 
-    /**
-     * Gets the Bedrock username for a player (without the prefix).
-     *
-     * @param player Player to get username for
-     * @return Bedrock username, or player's regular username if not a Bedrock player
-     */
-    public static String getBedrockUsername(Player player) {
-        if (player == null) {
-            return null;
-        }
-
-        if (!isBedrockPlayer(player)) {
-            return player.getName();
-        }
-
-        if (initialized && floodgateApi != null) {
-            try {
-                FloodgatePlayer floodgatePlayer = floodgateApi.getPlayer(player.getUniqueId());
-                if (floodgatePlayer != null) {
-                    return floodgatePlayer.getUsername();
-                }
-            } catch (Exception e) {
-                LOGGER.warning("Error getting Bedrock username: " + e.getMessage());
-            }
-        }
-
-        return player.getName();
-    }
-
-    /**
-     * Gets the Xbox User ID (XUID) for a Bedrock player.
-     *
-     * @param player Player to get XUID for
-     * @return Optional containing XUID if available
-     */
-    public static Optional<String> getXboxUID(Player player) {
-        if (player == null || !isBedrockPlayer(player)) {
-            return Optional.empty();
-        }
-
-        if (initialized && floodgateApi != null) {
-            try {
-                FloodgatePlayer floodgatePlayer = floodgateApi.getPlayer(player.getUniqueId());
-                if (floodgatePlayer != null) {
-                    return Optional.of(floodgatePlayer.getXuid());
-                }
-            } catch (Exception e) {
-                LOGGER.warning("Error getting Xbox UID: " + e.getMessage());
-            }
-        }
-
-        return Optional.empty();
-    }
-
-    /**
-     * Gets the FloodgatePlayer object for detailed information.
-     *
-     * @param player Player to get FloodgatePlayer for
-     * @return Optional containing FloodgatePlayer if available
-     */
-    public static Optional<FloodgatePlayer> getFloodgatePlayer(Player player) {
-        if (player == null || !initialized || floodgateApi == null) {
-            return Optional.empty();
-        }
-
-        try {
-            FloodgatePlayer floodgatePlayer = floodgateApi.getPlayer(player.getUniqueId());
-            return Optional.ofNullable(floodgatePlayer);
-        } catch (Exception e) {
-            LOGGER.warning("Error getting FloodgatePlayer: " + e.getMessage());
-            return Optional.empty();
-        }
     }
 
     /**

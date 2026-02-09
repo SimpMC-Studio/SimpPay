@@ -73,7 +73,8 @@ public class Database {
         config.setDriverClassName(driverClassName);
 
         // General HikariCP settings
-        config.setMaximumPoolSize(10);
+        // H2 needs a larger pool since async milestone/cache tasks run concurrent DB queries
+        config.setMaximumPoolSize(dbType.equalsIgnoreCase("h2") ? 20 : 10);
         config.setMinimumIdle(2);
         config.setConnectionTimeout(30000); // 30 seconds
         config.setIdleTimeout(600000);        // 10 minutes
