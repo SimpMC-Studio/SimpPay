@@ -2,7 +2,8 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
 export default defineConfig({
-  site: 'https://simpmc-studio.github.io/SimpPay',
+  site: "https://simpmc-studio.github.io",
+  base: "/SimpPay",
   integrations: [
     starlight({
       title: "SimpPay",
