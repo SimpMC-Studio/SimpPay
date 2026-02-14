@@ -1,0 +1,143 @@
+---
+title: Lệnh người chơi
+description: Danh sách lệnh dành cho người chơi
+---
+
+Các lệnh người chơi có thể sử dụng trong SimpPay.
+
+## Lệnh nạp tiền
+
+### /napthe
+
+Mở menu GUI nạp thẻ cào.
+
+| | |
+|---|---|
+| **Cú pháp** | `/napthe` |
+| **Permission** | `simppay.napthe` |
+| **Mô tả** | Mở menu chọn loại thẻ và mệnh giá |
+
+**Ví dụ:**
+```
+/napthe
+```
+
+### /napthenhanh
+
+Nạp thẻ cào nhanh không cần GUI.
+
+| | |
+|---|---|
+| **Cú pháp** | `/napthenhanh <card_type> <amount> <serial> <pin>` |
+| **Permission** | `simppay.napthenhanh` |
+| **Mô tả** | Nạp thẻ trực tiếp qua lệnh |
+
+**Tham số:**
+- `<card_type>` - Loại thẻ: `VIETTEL`, `MOBIFONE`, `VINAPHONE`
+- `<amount>` - Mệnh giá: `10000`, `20000`, `50000`, ...
+- `<serial>` - Serial thẻ
+- `<pin>` - PIN thẻ
+
+**Ví dụ:**
+```
+/napthenhanh VIETTEL 50000 12345678901 123456789012345
+```
+
+### /bank
+
+Tạo QR code thanh toán banking.
+
+| | |
+|---|---|
+| **Cú pháp** | `/bank <amount>` |
+| **Permission** | `simppay.banking` |
+| **Mô tả** | Tạo QR code để chuyển khoản |
+
+**Tham số:**
+- `<amount>` - Số tiền (VNĐ), tối thiểu 10,000
+
+**Ví dụ:**
+```
+/bank 50000
+/bank 100000
+```
+
+## Lệnh xem thông tin
+
+### /lichsunapthe
+
+Xem lịch sử nạp tiền của bản thân.
+
+| | |
+|---|---|
+| **Cú pháp** | `/lichsunapthe [player]` |
+| **Permission** | `simppay.lichsunapthe` |
+| **Mô tả** | Hiển thị lịch sử giao dịch |
+
+**Tham số:**
+- `[player]` - Tên người chơi (optional, mặc định là bản thân)
+
+**Ví dụ:**
+```
+/lichsunapthe
+/lichsunapthe player123
+```
+
+### /streak
+
+Mở menu streak nạp liên tiếp.
+
+| | |
+|---|---|
+| **Cú pháp** | `/streak` |
+| **Permission** | `simppay.streak` |
+| **Mô tả** | Hiển thị streak hiện tại và milestone rewards |
+
+**Ví dụ:**
+```
+/streak
+```
+
+## Permissions
+
+| Permission | Mô tả | Mặc định |
+|------------|-------|----------|
+| `simppay.napthe` | Sử dụng lệnh /napthe | `true` |
+| `simppay.napthenhanh` | Sử dụng lệnh /napthenhanh | `true` |
+| `simppay.banking` | Sử dụng lệnh /bank | `true` |
+| `simppay.lichsunapthe` | Xem lịch sử nạp tiền | `true` |
+| `simppay.streak` | Xem streak menu | `true` |
+
+## Cấu hình permissions
+
+### LuckPerms
+
+```bash
+# Give tất cả permissions cho group default
+lp group default permission set simppay.napthe true
+lp group default permission set simppay.napthenhanh true
+lp group default permission set simppay.banking true
+lp group default permission set simppay.lichsunapthe true
+lp group default permission set simppay.streak true
+
+# Hoặc give wildcard
+lp group default permission set simppay.* true
+```
+
+### PermissionsEx
+
+```yaml
+groups:
+  default:
+    permissions:
+      - simppay.napthe
+      - simppay.napthenhanh
+      - simppay.banking
+      - simppay.lichsunapthe
+      - simppay.streak
+```
+
+## Xem thêm
+
+- [Lệnh admin](/commands/admin-commands/) - Lệnh dành cho admin
+- [Placeholders](/placeholders/index/) - PlaceholderAPI placeholders

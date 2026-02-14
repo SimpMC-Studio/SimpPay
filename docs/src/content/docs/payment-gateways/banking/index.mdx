@@ -1,0 +1,284 @@
+---
+title: Thanh toán QR
+description: Tổng quan về hệ thống thanh toán QR banking
+---
+
+import { Steps, Card, CardGrid } from '@astrojs/starlight/components';
+
+SimpPay hỗ trợ 3 cổng thanh toán QR banking cho phép người chơi nạp tiền qua chuyển khoản ngân hàng.
+
+## Các cổng được hỗ trợ
+
+<CardGrid>
+  <Card title="PayOS" icon="star">
+    Dễ setup nhất, không cần webhook
+
+    [Xem hướng dẫn →](/payment-gateways/banking/payos/)
+  </Card>
+
+  <Card title="Web2M" icon="puzzle">
+    API ổn định, nhiều tính năng
+
+    [Xem hướng dẫn →](/payment-gateways/banking/web2m/)
+  </Card>
+
+  <Card title="Sepay" icon="rocket">
+    Webhook thời gian thực, xác nhận tức thì
+
+    [Xem hướng dẫn →](/payment-gateways/banking/sepay/)
+  </Card>
+</CardGrid>
+
+## Luồng thanh toán
+
+<Steps>
+
+1. **Người chơi gửi lệnh**
+
+   Gõ `/bank <amount>` (ví dụ: `/bank 50000`)
+
+2. **Tạo QR code**
+
+   Plugin gọi API gateway để tạo QR code thanh toán
+
+3. **Hiển thị QR**
+
+   QR code được hiển thị cho người chơi với thông tin:
+   - Số tiền
+   - Ngân hàng
+   - Nội dung chuyển khoản
+   - Mã đơn hàng
+
+4. **Người chơi quét QR**
+
+   Mở app ngân hàng → Quét QR → Xác nhận chuyển khoản
+
+5. **Xử lý thanh toán**
+
+   - **PayOS/Web2M**: Polling kiểm tra trạng thái mỗi 5 giây
+   - **Sepay**: Webhook callback tức thì
+
+6. **Nhận kết quả**
+
+   - **Thành công**: Nhận coins + message
+   - **Thất bại**: Nhận message lỗi
+   - **Timeout**: Có thể check lại sau
+
+</Steps>
+
+## So sánh các cổng
+
+| Cổng | Setup | Xác nhận | Webhook | Khuyến nghị |
+|------|-------|----------|---------|-------------|
+| PayOS | ⭐⭐⭐⭐⭐ Dễ | 5-30s | ❌ Không | ✅ Người mới |
+| Web2M | ⭐⭐⭐⭐ Trung bình | 5-30s | ❌ Không | ✅ Ổn định |
+| Sepay | ⭐⭐⭐ Khó | Tức thì | ✅ Có | ✅ Server lớn |
+
+## Ưu điểm QR Banking
+
+### So với thẻ cào
+
+- ✅ **Không chiết khấu**: Nạp 100k nhận đủ 100k
+- ✅ **Nhanh hơn**: Xác nhận trong vài giây
+- ✅ **Tiện lợi**: Quét QR là xong, không cần nhập serial/PIN
+- ✅ **Đa dạng số tiền**: Nạp bất kỳ số tiền nào (không giới hạn mệnh giá)
+
+### Nhược điểm
+
+- ⚠️ **Cần tài khoản ngân hàng**: Người chơi phải có app banking
+- ⚠️ **Phí chuyển khoản**: Một số ngân hàng tính phí (thường 0đ cho cùng ngân hàng)
+
+## Ngân hàng được hỗ trợ
+
+Tất cả các cổng đều hỗ trợ các ngân hàng lớn tại Việt Nam:
+
+- **Vietcombank** (VCB)
+- **Techcombank** (TCB)
+- **BIDV**
+- **VietinBank** (CTG)
+- **Agribank**
+- **ACB**
+- **MB Bank** (MB)
+- **VPBank**
+- **Sacombank** (STB)
+- **TPBank**
+- **HDBank**
+- **SHB**
+- **VIB**
+- **MSB**
+- **OCB**
+- Và nhiều ngân hàng khác...
+
+## Cấu hình chung
+
+### PayOS / Web2M (Polling)
+
+```yaml
+enabled: true
+
+# API credentials
+client-id: "xxx"
+api-key: "xxx"
+
+# Polling settings
+timeout: 300  # 5 phút
+interval: 5   # Check mỗi 5 giây
+
+# Amount limits
+min-amount: 10000
+max-amount: 50000000
+```
+
+### Sepay (Webhook)
+
+```yaml
+enabled: true
+
+# API credentials
+api-key: "xxx"
+account-number: "1234567890"
+account-name: "NGUYEN VAN A"
+
+# Webhook settings
+webhook-port: 8080
+webhook-path: "/webhook/sepay"
+webhook-api-key: "xxx"
+
+# Amount limits
+min-amount: 10000
+max-amount: 50000000
+```
+
+## Trạng thái thanh toán
+
+| Status | Mô tả | Hành động |
+|--------|-------|-----------|
+| `PENDING` | Đang chờ thanh toán | Tiếp tục polling/chờ webhook |
+| `SUCCESS` | Thanh toán thành công | Award coins |
+| `FAILED` | Thanh toán thất bại | Thông báo lỗi |
+| `TIMEOUT` | Hết thời gian chờ | Dừng polling |
+| `CANCELLED` | Đã hủy | Thông báo |
+
+## Lỗi thường gặp
+
+### QR code không hiển thị
+
+**Nguyên nhân:**
+- API credentials sai
+- Tài khoản gateway chưa active
+- Network issues
+
+**Giải pháp:**
+- Kiểm tra lại credentials trong config
+- Xác minh tài khoản đã được duyệt
+- Bật debug mode để xem log
+
+### Thanh toán không được xác nhận
+
+**Nguyên nhân:**
+- Chuyển sai số tiền
+- Sai nội dung chuyển khoản
+- Webhook bị chặn (Sepay)
+
+**Giải pháp:**
+- Hướng dẫn người chơi chuyển đúng số tiền và nội dung
+- Kiểm tra webhook port đã mở (Sepay)
+- Tăng timeout nếu cần
+
+### Timeout
+
+**Nguyên nhân:**
+- API gateway chậm
+- Người chơi chưa chuyển khoản
+- Network issues
+
+**Giải pháp:**
+- Tăng `timeout` trong config
+- Hướng dẫn người chơi chuyển nhanh
+- Kiểm tra kết nối internet
+
+## Chọn cổng phù hợp
+
+### Server mới / nhỏ (< 50 players)
+
+**Khuyến nghị: PayOS**
+- ✅ Setup dễ nhất
+- ✅ Không cần webhook
+- ✅ Ổn định
+
+### Server trung bình (50-200 players)
+
+**Khuyến nghị: PayOS + Web2M (backup)**
+- ✅ Hai cổng ổn định
+- ✅ Có backup khi một cổng gặp sự cố
+- ✅ Không cần mở port
+
+### Server lớn (> 200 players)
+
+**Khuyến nghị: Sepay + PayOS (backup)**
+- ✅ Sepay webhook cho xác nhận tức thì
+- ✅ PayOS backup khi Sepay down
+- ✅ Giảm load polling
+
+## Webhook vs Polling
+
+### Polling (PayOS, Web2M)
+
+**Cách hoạt động:**
+- Plugin gọi API check status mỗi 5 giây
+- Tiếp tục cho đến khi có kết quả hoặc timeout
+
+**Ưu điểm:**
+- ✅ Không cần mở port
+- ✅ Không cần domain/IP public
+- ✅ Setup đơn giản
+
+**Nhược điểm:**
+- ⚠️ Chậm hơn webhook (5-30s)
+- ⚠️ Tốn tài nguyên server (nhiều API calls)
+
+### Webhook (Sepay)
+
+**Cách hoạt động:**
+- Gateway gửi HTTP request đến plugin khi có thanh toán
+- Plugin xử lý tức thì
+
+**Ưu điểm:**
+- ✅ Xác nhận tức thì (< 1s)
+- ✅ Không tốn tài nguyên polling
+- ✅ Trải nghiệm tốt hơn
+
+**Nhược điểm:**
+- ⚠️ Cần mở port (default: 8080)
+- ⚠️ Cần domain/IP public
+- ⚠️ Setup phức tạp hơn
+
+## Best practices
+
+1. **Đăng ký nhiều cổng**: Có backup khi một cổng gặp sự cố
+
+2. **Dùng Sepay cho server lớn**: Webhook giảm load và tăng trải nghiệm
+
+3. **Set min/max amount hợp lý**: Tránh spam với số tiền quá nhỏ
+
+4. **Hướng dẫn rõ ràng**: Customize messages để hướng dẫn người chơi chuyển đúng
+
+5. **Monitor transactions**: Bật debug mode để log tất cả giao dịch
+
+## Bước tiếp theo
+
+Chọn một cổng để bắt đầu:
+
+<CardGrid>
+  <Card title="PayOS (Khuyến nghị)" icon="star">
+    Setup cổng dễ nhất
+
+    [Hướng dẫn setup →](/payment-gateways/banking/payos/)
+  </Card>
+
+  <Card title="Sepay (Nâng cao)" icon="rocket">
+    Webhook thời gian thực
+
+    [Hướng dẫn setup →](/payment-gateways/banking/sepay/)
+  </Card>
+</CardGrid>

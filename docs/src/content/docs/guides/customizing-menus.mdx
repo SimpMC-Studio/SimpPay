@@ -1,0 +1,322 @@
+---
+title: Tùy chỉnh menu
+description: Hướng dẫn tùy chỉnh menu GUI
+---
+
+import { FileTree, Aside } from '@astrojs/starlight/components';
+
+Hướng dẫn tùy chỉnh menu InvUI của SimpPay.
+
+## File structure
+
+<FileTree>
+
+- plugins/SimpPay/menus/
+  - card-list-view-config.yml
+  - card-price-view-config.yml
+  - payment-history-view-config.yml
+  - streak-menu-view-config.yml
+
+</FileTree>
+
+## Layout system
+
+Layout sử dụng grid 9 columns × N rows:
+
+```yaml
+layout:
+  - "xxxxxxxxx"  # Row 1 (9 chars)
+  - "xVxMxPxxx"  # Row 2 (9 chars)
+  - "xxxxxxxxx"  # Row 3 (9 chars)
+```
+
+Mỗi ký tự map đến một item trong `items` section.
+
+### Slot mapping
+
+```
+0  1  2  3  4  5  6  7  8
+9  10 11 12 13 14 15 16 17
+18 19 20 21 22 23 24 25 26
+...
+```
+
+**Ví dụ:**
+```yaml
+layout:
+  - "xxxxxxxxx"  # Slots 0-8
+  - "xVxMxPxxx"  # Slots 9-17 (V=10, M=12, P=14)
+  - "xxxxxxxxx"  # Slots 18-26
+```
+
+## DisplayItem structure
+
+```yaml
+items:
+  x:                                    # Character key
+    material: "BLACK_STAINED_GLASS_PANE"  # Bukkit material
+    name: " "                           # Display name (MiniMessage)
+    lore:                               # Lore lines
+      - "<gray>Line 1</gray>"
+      - "<yellow>Line 2</yellow>"
+    role: "NONE"                        # Item role
+```
+
+## Role types
+
+| Role | Mô tả |
+|------|-------|
+| `NONE` | Decoration (không click được) |
+| `PREV_PAGE` | Nút trang trước |
+| `NEXT_PAGE` | Nút trang sau |
+| `BACK` | Nút quay lại |
+| `VIETTEL` / `MOBIFONE` / `VINAPHONE` | Chọn loại thẻ |
+| `AMOUNT_10000` / `AMOUNT_20000` / ... | Chọn mệnh giá |
+
+## Ví dụ customization
+
+### Thay đổi màu sắc
+
+**Before:**
+```yaml
+V:
+  material: "RED_WOOL"
+  name: "<red><bold>VIETTEL</bold></red>"
+```
+
+**After:**
+```yaml
+V:
+  material: "RED_CONCRETE"
+  name: "<gradient:red:dark_red><bold>VIETTEL</bold></gradient>"
+  lore:
+    - ""
+    - "<gray>Click để chọn thẻ Viettel</gray>"
+    - "<yellow>Chiết khấu: 25%</yellow>"
+    - ""
+```
+
+### Thay đổi layout
+
+**Centered layout:**
+```yaml
+layout:
+  - "xxxxxxxxx"
+  - "xxVxMxPxx"  # Center 3 items
+  - "xxxxxxxxx"
+```
+
+**Spread layout:**
+```yaml
+layout:
+  - "xxxxxxxxx"
+  - "xVxxxMxxP"  # Spread across row
+  - "xxxxxxxxx"
+```
+
+**Vertical layout:**
+```yaml
+layout:
+  - "xxxxVxxxx"
+  - "xxxxMxxxx"
+  - "xxxxPxxxx"
+```
+
+### Thêm decoration
+
+```yaml
+layout:
+  - "GGGGGGGGG"  # Top border
+  - "GxVxMxPxG"  # Content with side borders
+  - "GGGGGGGGG"  # Bottom border
+
+items:
+  G:
+    material: "YELLOW_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+```
+
+### Custom materials
+
+```yaml
+V:
+  material: "PLAYER_HEAD"  # Custom head
+  name: "<red><bold>VIETTEL</bold></red>"
+  lore:
+    - ""
+    - "<gray>Click để chọn</gray>"
+    - ""
+  role: "VIETTEL"
+```
+
+## Ví dụ menu hoàn chỉnh
+
+### Premium card list view
+
+```yaml
+# Card List View - Premium style
+title: "<gradient:gold:yellow><bold>━━━ NẠP THẺ CÀO ━━━</bold></gradient>"
+size: 5
+
+layout:
+  - "GGGGGGGGG"
+  - "GxxxxxxxG"
+  - "GxVxMxPxG"
+  - "GxxxxxxxG"
+  - "GGGGGGGGG"
+
+items:
+  G:
+    material: "YELLOW_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+
+  x:
+    material: "BLACK_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+
+  V:
+    material: "RED_CONCRETE"
+    name: "<gradient:red:dark_red><bold>VIETTEL</bold></gradient>"
+    lore:
+      - ""
+      - "<gray>Nhà mạng:</gray> <red>Viettel</red>"
+      - "<gray>Chiết khấu:</gray> <yellow>~25%</yellow>"
+      - ""
+      - "<green>▶ Click để chọn</green>"
+      - ""
+    role: "VIETTEL"
+
+  M:
+    material: "BLUE_CONCRETE"
+    name: "<gradient:blue:dark_blue><bold>MOBIFONE</bold></gradient>"
+    lore:
+      - ""
+      - "<gray>Nhà mạng:</gray> <blue>Mobifone</blue>"
+      - "<gray>Chiết khấu:</gray> <yellow>~25%</yellow>"
+      - ""
+      - "<green>▶ Click để chọn</green>"
+      - ""
+    role: "MOBIFONE"
+
+  P:
+    material: "PURPLE_CONCRETE"
+    name: "<gradient:light_purple:dark_purple><bold>VINAPHONE</bold></gradient>"
+    lore:
+      - ""
+      - "<gray>Nhà mạng:</gray> <light_purple>Vinaphone</light_purple>"
+      - "<gray>Chiết khấu:</gray> <yellow>~25%</yellow>"
+      - ""
+      - "<green>▶ Click để chọn</green>"
+      - ""
+    role: "VINAPHONE"
+```
+
+### Animated border
+
+```yaml
+layout:
+  - "ABABABABA"
+  - "BxxxxxxxA"
+  - "AxVxMxPxB"
+  - "BxxxxxxxA"
+  - "ABABABABA"
+
+items:
+  A:
+    material: "LIME_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+
+  B:
+    material: "GREEN_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+```
+
+## MiniMessage trong lore
+
+### Gradient
+
+```yaml
+lore:
+  - "<gradient:green:aqua>Gradient text</gradient>"
+```
+
+### Hover text
+
+```yaml
+lore:
+  - "<hover:show_text:'Tooltip here'>Hover me</hover>"
+```
+
+### Multiple colors
+
+```yaml
+lore:
+  - ""
+  - "<gray>Loại thẻ:</gray> <red>Viettel</red>"
+  - "<gray>Mệnh giá:</gray> <yellow>50,000đ</yellow>"
+  - "<gray>Chiết khấu:</gray> <green>~25%</green>"
+  - ""
+```
+
+## Best practices
+
+1. **Consistent style**: Giữ style nhất quán giữa các menu
+
+2. **Clear borders**: Dùng glass pane để tạo border rõ ràng
+
+3. **Readable lore**: Dùng màu sắc phù hợp, không quá nhiều màu
+
+4. **Test on client**: Test trên client để đảm bảo hiển thị đúng
+
+5. **Backup configs**: Backup trước khi sửa
+
+## Troubleshooting
+
+### Item không hiển thị
+
+<Aside type="caution">
+  **Nguyên nhân**: Material name sai hoặc không tồn tại
+
+  **Giải pháp**:
+  - Kiểm tra material name đúng (Bukkit material)
+  - Xem list materials: [Bukkit Materials](https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html)
+  - Reload plugin
+</Aside>
+
+### Layout bị lỗi
+
+<Aside type="caution">
+  **Nguyên nhân**: Layout không đúng 9 chars mỗi row
+
+  **Giải pháp**:
+  - Đảm bảo mỗi row có đúng 9 ký tự
+  - Kiểm tra không có khoảng trắng thừa
+  - Verify số rows = size / 9
+</Aside>
+
+### MiniMessage không render
+
+<Aside type="caution">
+  **Nguyên nhân**: Syntax sai hoặc missing closing tag
+
+  **Giải pháp**:
+  - Test tại [MiniMessage Viewer](https://webui.advntr.dev/)
+  - Kiểm tra closing tags
+  - Escape special chars nếu cần
+</Aside>
+
+## Xem thêm
+
+- [Menu & GUI](/features/menus/) - Chi tiết về menu system
+- [MiniMessage Format](https://docs.advntr.dev/minimessage/)
+- [InvUI Documentation](https://github.com/NichtStudioCode/InvUI)

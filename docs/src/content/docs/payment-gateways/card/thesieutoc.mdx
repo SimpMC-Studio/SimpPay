@@ -1,0 +1,349 @@
+---
+title: TheSieuToc
+description: Hướng dẫn cấu hình cổng thẻ cào TheSieuToc
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+TheSieuToc là cổng nạp thẻ cào phổ biến nhất tại Việt Nam với tỷ lệ chiết khấu tốt và API ổn định.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. **Truy cập website**
+
+   Vào [https://thesieutoc.net](https://thesieutoc.net)
+
+2. **Đăng ký tài khoản đại lý**
+
+   - Click "Đăng ký"
+   - Điền thông tin: Email, SĐT, CMND/CCCD
+   - Xác minh email và số điện thoại
+
+3. **Nạp tiền vào tài khoản**
+
+   - Tối thiểu: 100,000 VNĐ
+   - Chuyển khoản qua ngân hàng hoặc Momo
+   - Chờ admin duyệt (thường < 30 phút)
+
+4. **Lấy API credentials**
+
+   - Vào **Tài khoản** → **API**
+   - Copy **Partner ID** và **Partner Key**
+
+</Steps>
+
+<Aside type="caution">
+  Giữ Partner Key bí mật! Không chia sẻ với người khác.
+</Aside>
+
+## Cấu hình plugin
+
+Mở file `plugins/SimpPay/card/thesieutoc-config.yml`:
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Bật/tắt cổng TheSieuToc
+enabled: true
+
+# Partner credentials từ TheSieuToc dashboard
+partner-id: "12345678"
+partner-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Timeout cho polling (giây)
+# Sau timeout, payment sẽ bị cancel
+timeout: 300
+
+# Interval giữa các lần check status (giây)
+interval: 10
+
+# Loại thẻ được hỗ trợ
+supported-card-types:
+  - VIETTEL
+  - MOBIFONE
+  - VINAPHONE
+
+# Mệnh giá được hỗ trợ (VNĐ)
+supported-amounts:
+  - 10000
+  - 20000
+  - 30000
+  - 50000
+  - 100000
+  - 200000
+  - 300000
+  - 500000
+  - 1000000
+```
+
+## Chi tiết cấu hình
+
+### enabled
+
+- **Kiểu**: `boolean`
+- **Mặc định**: `true`
+- **Mô tả**: Bật/tắt cổng TheSieuToc
+
+Khi `enabled: false`, nút TheSieuToc trong menu `/napthe` sẽ bị disable.
+
+### partner-id
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: Partner ID từ TheSieuToc dashboard
+
+Lấy từ: TheSieuToc Dashboard → Tài khoản → API
+
+### partner-key
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: Partner Key từ TheSieuToc dashboard
+
+<Aside type="caution">
+  Partner Key là secret key, không được commit vào Git hoặc chia sẻ công khai!
+</Aside>
+
+### timeout
+
+- **Kiểu**: `integer` (giây)
+- **Mặc định**: `300` (5 phút)
+- **Mô tả**: Thời gian tối đa chờ xử lý thẻ
+
+Sau `timeout` giây, nếu thẻ vẫn `PENDING`, plugin sẽ dừng polling và thông báo timeout.
+
+**Khuyến nghị:**
+- Server ổn định: `300` (5 phút)
+- API chậm: `600` (10 phút)
+- Test: `120` (2 phút)
+
+### interval
+
+- **Kiểu**: `integer` (giây)
+- **Mặc định**: `10`
+- **Mô tả**: Khoảng thời gian giữa các lần check status
+
+Plugin sẽ gọi API check status mỗi `interval` giây.
+
+**Khuyến nghị:**
+- Không nên < 5 giây (tránh spam API)
+- Không nên > 30 giây (người chơi chờ lâu)
+- Tối ưu: `10` giây
+
+### supported-card-types
+
+- **Kiểu**: `list<string>`
+- **Mặc định**: `[VIETTEL, MOBIFONE, VINAPHONE]`
+- **Mô tả**: Các loại thẻ được hỗ trợ
+
+Chỉ các loại thẻ trong list này mới hiển thị trong menu `/napthe`.
+
+**Giá trị hợp lệ:**
+- `VIETTEL` - Viettel
+- `MOBIFONE` - MobiFone
+- `VINAPHONE` - VinaPhone
+
+### supported-amounts
+
+- **Kiểu**: `list<integer>`
+- **Mặc định**: `[10000, 20000, 30000, 50000, 100000, 200000, 300000, 500000, 1000000]`
+- **Mô tả**: Các mệnh giá được hỗ trợ (VNĐ)
+
+Chỉ các mệnh giá trong list này mới hiển thị trong menu chọn giá.
+
+## API Endpoints
+
+TheSieuToc sử dụng các endpoints sau:
+
+### Send Card
+
+```
+POST https://thesieutoc.net/chargingws/v2
+```
+
+**Request:**
+```json
+{
+  "telco": "VIETTEL",
+  "code": "123456789012345",
+  "serial": "12345678901",
+  "amount": 50000,
+  "request_id": "SP-1234567890",
+  "partner_id": "12345678",
+  "sign": "md5_signature"
+}
+```
+
+**Response:**
+```json
+{
+  "status": 99,
+  "message": "Thẻ đang được xử lý"
+}
+```
+
+### Check Status
+
+```
+POST https://thesieutoc.net/chargingws/v2/check
+```
+
+**Request:**
+```json
+{
+  "request_id": "SP-1234567890",
+  "partner_id": "12345678",
+  "sign": "md5_signature"
+}
+```
+
+**Response:**
+```json
+{
+  "status": 1,
+  "message": "Thành công",
+  "declared_value": 50000,
+  "value": 50000
+}
+```
+
+## Status Codes
+
+| Code | Mô tả | Hành động |
+|------|-------|-----------|
+| `1` | Thành công | Award coins |
+| `2` | Sai mệnh giá | Thông báo lỗi |
+| `3` | Thẻ lỗi | Thông báo lỗi |
+| `4` | Hệ thống bảo trì | Thông báo lỗi |
+| `99` | Đang xử lý | Tiếp tục polling |
+| `100` | Gửi thẻ thất bại | Thông báo lỗi |
+
+## Testing
+
+<Steps>
+
+1. **Bật debug mode**
+
+   `main-config.yml`:
+   ```yaml
+   debug: true
+   ```
+
+2. **Reload plugin**
+
+   ```
+   /simppayadmin reload
+   ```
+
+3. **Test với thẻ thật**
+
+   - Mua thẻ 10k hoặc 20k
+   - Gõ `/napthe`
+   - Chọn TheSieuToc → Chọn mệnh giá → Nhập serial/PIN
+
+4. **Kiểm tra console**
+
+   ```
+   [SimpPay] [DEBUG] TSTHandler: Sending card VIETTEL 50000
+   [SimpPay] [DEBUG] TSTHandler: API Response: {"status":99,"message":"..."}
+   [SimpPay] [DEBUG] TSTHandler: Payment queued, starting polling
+   [SimpPay] [DEBUG] TSTHandler: Checking status for SP-1234567890
+   [SimpPay] [DEBUG] TSTHandler: Status: 1 (Success)
+   [SimpPay] [DEBUG] PaymentSuccessEvent fired
+   ```
+
+5. **Kiểm tra coins**
+
+   ```
+   /points check <player>
+   ```
+
+</Steps>
+
+## Troubleshooting
+
+### Invalid signature
+
+<Aside type="caution">
+  **Lỗi**: `Invalid signature` hoặc `Authentication failed`
+
+  **Nguyên nhân**: Partner Key sai
+
+  **Giải pháp**:
+  - Kiểm tra lại Partner Key trong config
+  - Copy chính xác từ dashboard (không có khoảng trắng)
+  - Reload plugin sau khi sửa
+</Aside>
+
+### Insufficient balance
+
+<Aside type="caution">
+  **Lỗi**: `Tài khoản không đủ số dư`
+
+  **Nguyên nhân**: Tài khoản đại lý hết tiền
+
+  **Giải pháp**:
+  - Nạp tiền vào tài khoản TheSieuToc
+  - Kiểm tra balance trên dashboard
+  - Thiết lập alert khi balance < 500k
+</Aside>
+
+### Card already used
+
+<Aside type="caution">
+  **Lỗi**: `Thẻ đã được sử dụng`
+
+  **Nguyên nhân**: Thẻ đã nạp trước đó
+
+  **Giải pháp**:
+  - Sử dụng thẻ mới chưa nạp
+  - Kiểm tra lịch sử giao dịch trên dashboard
+</Aside>
+
+### Timeout
+
+<Aside type="caution">
+  **Lỗi**: `Hết thời gian chờ`
+
+  **Nguyên nhân**: API TheSieuToc chậm hoặc thẻ lỗi
+
+  **Giải pháp**:
+  - Tăng `timeout` trong config (ví dụ: 600 giây)
+  - Kiểm tra trạng thái thẻ trên dashboard TheSieuToc
+  - Liên hệ support TheSieuToc nếu thẻ bị treo
+</Aside>
+
+## Best practices
+
+1. **Monitor balance**: Thiết lập alert khi tài khoản < 500k VNĐ
+
+2. **Backup gateway**: Cấu hình thêm Card2K hoặc Doithe1s làm backup
+
+3. **Log transactions**: Bật debug mode để log tất cả giao dịch
+
+4. **Test định kỳ**: Test với thẻ 10k-20k mỗi tuần để đảm bảo hoạt động
+
+5. **Secure credentials**: Không commit Partner Key vào Git
+
+## Tỷ lệ chiết khấu
+
+TheSieuToc có tỷ lệ chiết khấu khác nhau tùy loại thẻ:
+
+| Loại thẻ | Chiết khấu | Ví dụ |
+|----------|------------|-------|
+| Viettel | ~25% | Thẻ 100k → Nhận 75k |
+| Mobifone | ~25% | Thẻ 100k → Nhận 75k |
+| Vinaphone | ~25% | Thẻ 100k → Nhận 75k |
+
+<Aside type="note">
+  Tỷ lệ chiết khấu có thể thay đổi. Kiểm tra dashboard TheSieuToc để biết tỷ lệ hiện tại.
+</Aside>
+
+## Xem thêm
+
+- [Cấu hình xu & phần thưởng](/configuration/coins-rewards/) - Tỷ lệ quy đổi coins
+- [Card2K](/payment-gateways/card/card2k/) - Alternative gateway
+- [Doithe1s](/payment-gateways/card/doithe1s/) - Backup gateway

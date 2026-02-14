@@ -1,0 +1,103 @@
+---
+title: Cấu hình chính
+description: Cấu hình chính của SimpPay
+---
+
+File `main-config.yml` chứa các cài đặt cơ bản của plugin.
+
+## Vị trí file
+
+```
+plugins/SimpPay/main-config.yml
+```
+
+## Cấu hình đầy đủ
+
+```yaml
+# SimpPay Main Configuration
+# Made by typical.smc
+
+# Bật debug logging (hiển thị log chi tiết trong console)
+debug: false
+
+# Ngôn ngữ (hiện tại chỉ hỗ trợ vi_VN)
+locale: "vi_VN"
+```
+
+## Chi tiết các trường
+
+### debug
+
+- **Kiểu**: `boolean`
+- **Mặc định**: `false`
+- **Mô tả**: Bật/tắt debug logging trong console
+
+Khi bật `debug: true`, plugin sẽ hiển thị log chi tiết về:
+- API requests và responses
+- Payment status polling
+- Event firing sequence
+- Database queries
+- Handler initialization
+- Cache updates
+
+**Ví dụ debug output:**
+
+```
+[SimpPay] [DEBUG] PaymentService: Sending bank payment for player123, amount: 50000
+[SimpPay] [DEBUG] PayosHandler: Creating payment link...
+[SimpPay] [DEBUG] PayosHandler: API Response: {"code":"00","desc":"success","data":{...}}
+[SimpPay] [DEBUG] PaymentHandlingListener: Starting polling for payment #12345
+[SimpPay] [DEBUG] PayosHandler: Checking payment status for order #12345
+[SimpPay] [DEBUG] PaymentSuccessEvent fired for player123, amount: 50000
+[SimpPay] [DEBUG] SuccessHandlingListener: Awarding 50 coins to player123
+[SimpPay] [DEBUG] CacheUpdaterListener: Updating leaderboard cache for player123
+[SimpPay] [DEBUG] MilestoneListener: Checking milestones for player123
+[SimpPay] [DEBUG] StreakService: Updating streak for player123
+```
+
+**Khi nào nên bật debug:**
+- Khi thiết lập cổng thanh toán mới
+- Khi gặp lỗi thanh toán
+- Khi coins không được cộng đúng
+- Khi milestone không trigger
+- Khi cần troubleshoot API issues
+
+**Lưu ý:** Debug mode tạo nhiều log, không nên bật trên production server lâu dài.
+
+### locale
+
+- **Kiểu**: `string`
+- **Mặc định**: `"vi_VN"`
+- **Mô tả**: Ngôn ngữ của plugin
+
+Hiện tại SimpPay chỉ hỗ trợ tiếng Việt (`vi_VN`). Trường này dành cho tương lai khi có thêm ngôn ngữ khác.
+
+## Reload cấu hình
+
+Sau khi chỉnh sửa file, reload plugin:
+
+```
+/simppayadmin reload
+```
+
+Lệnh này sẽ:
+- Reload tất cả config files
+- Re-initialize handler registry
+- Refresh cache
+- Không restart plugin (không mất dữ liệu)
+
+## Best practices
+
+1. **Bật debug khi setup**: Luôn bật debug mode khi thiết lập cổng thanh toán mới để dễ troubleshoot
+
+2. **Tắt debug trên production**: Sau khi mọi thứ hoạt động ổn định, tắt debug để giảm log spam
+
+3. **Backup trước khi sửa**: Luôn backup file config trước khi chỉnh sửa
+
+4. **Test sau khi reload**: Sau khi reload, test một giao dịch nhỏ để đảm bảo config đúng
+
+## Xem thêm
+
+- [Cấu hình tin nhắn](/configuration/messages/) - Tùy chỉnh messages gửi cho người chơi
+- [Cấu hình database](/configuration/database/) - Thiết lập MySQL/H2
+- [Cấu hình xu & phần thưởng](/configuration/coins-rewards/) - Tỷ lệ quy đổi coins

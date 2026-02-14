@@ -1,0 +1,364 @@
+---
+title: PayOS
+description: Hướng dẫn cấu hình cổng thanh toán PayOS
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+PayOS là cổng thanh toán QR banking dễ setup nhất, phù hợp cho người mới bắt đầu.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. **Truy cập website**
+
+   Vào [https://payos.vn](https://payos.vn)
+
+2. **Đăng ký tài khoản doanh nghiệp**
+
+   - Click "Đăng ký"
+   - Chọn loại tài khoản: Doanh nghiệp
+   - Điền thông tin: Tên công ty, MST, địa chỉ
+
+3. **Xác minh thông tin**
+
+   - Upload giấy tờ: GPKD, CMND/CCCD
+   - Chờ PayOS xác minh (1-3 ngày làm việc)
+
+4. **Liên kết ngân hàng**
+
+   - Vào **Tài khoản** → **Ngân hàng**
+   - Thêm tài khoản ngân hàng nhận tiền
+   - Xác minh bằng chuyển khoản test
+
+5. **Lấy API credentials**
+
+   - Vào **Developer** → **API Keys**
+   - Copy:
+     - **Client ID**
+     - **API Key**
+     - **Checksum Key**
+
+</Steps>
+
+<Aside type="caution">
+  PayOS yêu cầu tài khoản doanh nghiệp. Cần có GPKD hoặc giấy phép kinh doanh hợp lệ.
+</Aside>
+
+## Cấu hình plugin
+
+File: `plugins/SimpPay/banking/payos-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Bật/tắt cổng PayOS
+enabled: true
+
+# API Credentials từ PayOS Dashboard
+client-id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+api-key: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+checksum-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Timeout cho polling (giây)
+# Sau timeout, payment sẽ bị cancel
+timeout: 300
+
+# Interval giữa các lần check status (giây)
+interval: 5
+
+# Số tiền tối thiểu (VNĐ)
+min-amount: 10000
+
+# Số tiền tối đa (VNĐ)
+max-amount: 50000000
+```
+
+## Chi tiết cấu hình
+
+### enabled
+
+- **Kiểu**: `boolean`
+- **Mặc định**: `true`
+- **Mô tả**: Bật/tắt cổng PayOS
+
+### client-id
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: Client ID từ PayOS Dashboard
+
+Lấy từ: PayOS Dashboard → Developer → API Keys
+
+### api-key
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: API Key từ PayOS Dashboard
+
+<Aside type="caution">
+  API Key là secret key, không được commit vào Git hoặc chia sẻ công khai!
+</Aside>
+
+### checksum-key
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: Checksum Key để verify signature
+
+Dùng để tạo và verify signature cho API requests.
+
+### timeout
+
+- **Kiểu**: `integer` (giây)
+- **Mặc định**: `300` (5 phút)
+- **Mô tả**: Thời gian tối đa chờ thanh toán
+
+Sau `timeout` giây, nếu thanh toán vẫn `PENDING`, plugin sẽ dừng polling.
+
+**Khuyến nghị:**
+- Server ổn định: `300` (5 phút)
+- Cho người chơi nhiều thời gian: `600` (10 phút)
+- Test: `120` (2 phút)
+
+### interval
+
+- **Kiểu**: `integer` (giây)
+- **Mặc định**: `5`
+- **Mô tả**: Khoảng thời gian giữa các lần check status
+
+Plugin sẽ gọi API check status mỗi `interval` giây.
+
+**Khuyến nghị:**
+- Không nên < 3 giây (tránh spam API)
+- Không nên > 15 giây (người chơi chờ lâu)
+- Tối ưu: `5` giây
+
+### min-amount / max-amount
+
+- **Kiểu**: `integer` (VNĐ)
+- **Mặc định**: `10000` / `50000000`
+- **Mô tả**: Giới hạn số tiền nạp
+
+Người chơi chỉ có thể nạp trong khoảng `min-amount` đến `max-amount`.
+
+**Ví dụ:**
+```yaml
+min-amount: 20000    # Tối thiểu 20k
+max-amount: 10000000 # Tối đa 10 triệu
+```
+
+## API Endpoints
+
+PayOS sử dụng các endpoints sau:
+
+### Create Payment Link
+
+```
+POST https://api-merchant.payos.vn/v2/payment-requests
+```
+
+**Request:**
+```json
+{
+  "orderCode": 1234567890,
+  "amount": 50000,
+  "description": "Nap tien Minecraft - player123",
+  "returnUrl": "https://yourserver.com/return",
+  "cancelUrl": "https://yourserver.com/cancel"
+}
+```
+
+**Response:**
+```json
+{
+  "code": "00",
+  "desc": "success",
+  "data": {
+    "bin": "970422",
+    "accountNumber": "1234567890",
+    "accountName": "NGUYEN VAN A",
+    "amount": 50000,
+    "description": "Nap tien Minecraft - player123",
+    "orderCode": 1234567890,
+    "paymentLinkId": "abc123",
+    "status": "PENDING",
+    "checkoutUrl": "https://pay.payos.vn/abc123",
+    "qrCode": "https://api.payos.vn/qr/abc123.png"
+  }
+}
+```
+
+### Check Payment Status
+
+```
+GET https://api-merchant.payos.vn/v2/payment-requests/{orderCode}
+```
+
+**Response:**
+```json
+{
+  "code": "00",
+  "desc": "success",
+  "data": {
+    "orderCode": 1234567890,
+    "amount": 50000,
+    "status": "PAID",
+    "transactions": [
+      {
+        "reference": "FT12345678",
+        "amount": 50000,
+        "accountNumber": "1234567890",
+        "description": "Nap tien Minecraft - player123",
+        "transactionDateTime": "2026-02-14T10:30:00"
+      }
+    ]
+  }
+}
+```
+
+## Payment Status
+
+| Status | Mô tả | Hành động |
+|--------|-------|-----------|
+| `PENDING` | Chờ thanh toán | Tiếp tục polling |
+| `PAID` | Đã thanh toán | Award coins |
+| `CANCELLED` | Đã hủy | Thông báo |
+| `EXPIRED` | Hết hạn | Thông báo timeout |
+
+## Testing
+
+<Steps>
+
+1. **Bật debug mode**
+
+   `main-config.yml`:
+   ```yaml
+   debug: true
+   ```
+
+2. **Reload plugin**
+
+   ```
+   /simppayadmin reload
+   ```
+
+3. **Test thanh toán**
+
+   Trong game:
+   ```
+   /bank 50000
+   ```
+
+4. **Kiểm tra console**
+
+   ```
+   [SimpPay] [DEBUG] PayosHandler: Creating payment link for 50000 VND
+   [SimpPay] [DEBUG] PayosHandler: API Response: {"code":"00","desc":"success",...}
+   [SimpPay] [DEBUG] PayosHandler: QR Code URL: https://api.payos.vn/qr/abc123.png
+   [SimpPay] [DEBUG] PaymentHandlingListener: Starting polling for order #1234567890
+   [SimpPay] [DEBUG] PayosHandler: Checking status for order #1234567890
+   [SimpPay] [DEBUG] PayosHandler: Status: PAID
+   [SimpPay] [DEBUG] PaymentSuccessEvent fired
+   ```
+
+5. **Quét QR và thanh toán**
+
+   - Mở app ngân hàng
+   - Quét QR code
+   - Xác nhận chuyển khoản
+
+6. **Kiểm tra coins**
+
+   ```
+   /points check <player>
+   ```
+
+</Steps>
+
+## Troubleshooting
+
+### Invalid signature
+
+<Aside type="caution">
+  **Lỗi**: `Invalid signature` hoặc `Authentication failed`
+
+  **Nguyên nhân**: Checksum Key sai
+
+  **Giải pháp**:
+  - Kiểm tra lại Checksum Key trong config
+  - Copy chính xác từ dashboard (không có khoảng trắng)
+  - Reload plugin sau khi sửa
+</Aside>
+
+### Account not verified
+
+<Aside type="caution">
+  **Lỗi**: `Account not verified` hoặc `Account inactive`
+
+  **Nguyên nhân**: Tài khoản PayOS chưa được xác minh
+
+  **Giải pháp**:
+  - Hoàn tất xác minh tài khoản trên PayOS
+  - Upload đầy đủ giấy tờ
+  - Chờ PayOS duyệt (1-3 ngày)
+</Aside>
+
+### QR code không hiển thị
+
+<Aside type="caution">
+  **Lỗi**: QR code không load hoặc hiển thị lỗi
+
+  **Nguyên nhân**: API credentials sai hoặc network issues
+
+  **Giải pháp**:
+  - Kiểm tra lại Client ID, API Key, Checksum Key
+  - Kiểm tra kết nối internet của server
+  - Bật debug mode để xem log chi tiết
+</Aside>
+
+### Payment timeout
+
+<Aside type="caution">
+  **Lỗi**: `Hết thời gian chờ thanh toán`
+
+  **Nguyên nhân**: Người chơi chưa chuyển khoản trong thời gian timeout
+
+  **Giải pháp**:
+  - Tăng `timeout` trong config (ví dụ: 600 giây)
+  - Hướng dẫn người chơi chuyển nhanh hơn
+  - Kiểm tra trạng thái trên PayOS dashboard
+</Aside>
+
+## Best practices
+
+1. **Verify account trước**: Hoàn tất xác minh tài khoản PayOS trước khi deploy
+
+2. **Test với số tiền nhỏ**: Test với 10k-20k trước khi cho người chơi dùng
+
+3. **Monitor transactions**: Kiểm tra dashboard PayOS định kỳ
+
+4. **Backup gateway**: Cấu hình thêm Web2M hoặc Sepay làm backup
+
+5. **Secure credentials**: Không commit API keys vào Git
+
+## Phí giao dịch
+
+PayOS tính phí theo từng giao dịch:
+
+| Loại giao dịch | Phí |
+|----------------|-----|
+| Chuyển khoản nội địa | 1,000 - 3,000 VNĐ |
+| QR Code | 1,000 - 3,000 VNĐ |
+
+<Aside type="note">
+  Phí có thể thay đổi. Kiểm tra bảng giá trên PayOS để biết phí hiện tại.
+</Aside>
+
+## Xem thêm
+
+- [Cấu hình xu & phần thưởng](/configuration/coins-rewards/) - Tỷ lệ quy đổi coins
+- [Web2M](/payment-gateways/banking/web2m/) - Alternative gateway
+- [Sepay](/payment-gateways/banking/sepay/) - Webhook gateway

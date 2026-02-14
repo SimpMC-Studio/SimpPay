@@ -1,0 +1,69 @@
+---
+title: Doithe1s
+description: Hướng dẫn cấu hình cổng thẻ cào Doithe1s
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Doithe1s là cổng nạp thẻ cào với đa dạng mệnh giá và API ổn định.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. Truy cập [https://doithe1s.vn](https://doithe1s.vn)
+2. Đăng ký tài khoản đại lý
+3. Nạp tiền tối thiểu 100k VNĐ
+4. Lấy Partner ID và Partner Key từ API settings
+
+</Steps>
+
+## Cấu hình plugin
+
+File: `plugins/SimpPay/card/doithe1s-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+enabled: true
+
+partner-id: "12345678"
+partner-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+timeout: 300
+interval: 10
+
+supported-card-types:
+  - VIETTEL
+  - MOBIFONE
+  - VINAPHONE
+
+supported-amounts:
+  - 10000
+  - 20000
+  - 30000
+  - 50000
+  - 100000
+  - 200000
+  - 300000
+  - 500000
+  - 1000000
+```
+
+## Tỷ lệ chiết khấu
+
+| Loại thẻ | Chiết khấu |
+|----------|------------|
+| Viettel | ~24% |
+| Mobifone | ~24% |
+| Vinaphone | ~24% |
+
+<Aside type="tip">
+  Doithe1s hỗ trợ mệnh giá 30k và 300k, phù hợp cho server muốn đa dạng lựa chọn.
+</Aside>
+
+## Xem thêm
+
+- [TheSieuToc](/payment-gateways/card/thesieutoc/) - Cổng khuyến nghị
+- [Card2K](/payment-gateways/card/card2k/) - Alternative

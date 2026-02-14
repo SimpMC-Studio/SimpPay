@@ -1,0 +1,187 @@
+---
+title: Card2K
+description: Hướng dẫn cấu hình cổng thẻ cào Card2K
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Card2K là cổng nạp thẻ cào với API ổn định và tỷ lệ chiết khấu cạnh tranh.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. **Truy cập website**
+
+   Vào [https://card2k.com](https://card2k.com)
+
+2. **Đăng ký tài khoản**
+
+   - Click "Đăng ký đại lý"
+   - Điền thông tin cá nhân và xác minh
+
+3. **Nạp tiền**
+
+   - Tối thiểu: 100,000 VNĐ
+   - Chuyển khoản hoặc Momo
+
+4. **Lấy API Key**
+
+   - Vào **API** → **Thông tin API**
+   - Copy **API Key**
+
+</Steps>
+
+## Cấu hình plugin
+
+File: `plugins/SimpPay/card/card2k-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+enabled: true
+
+# API Key từ Card2K dashboard
+api-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+timeout: 300
+interval: 10
+
+supported-card-types:
+  - VIETTEL
+  - MOBIFONE
+  - VINAPHONE
+
+supported-amounts:
+  - 10000
+  - 20000
+  - 50000
+  - 100000
+  - 200000
+  - 500000
+  - 1000000
+```
+
+## Chi tiết cấu hình
+
+### api-key
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: API Key từ Card2K dashboard
+
+Lấy từ: Card2K Dashboard → API → Thông tin API
+
+<Aside type="caution">
+  Giữ API Key bí mật! Không chia sẻ hoặc commit vào Git.
+</Aside>
+
+## API Endpoints
+
+### Send Card
+
+```
+POST https://api.card2k.com/card/charge
+```
+
+**Request:**
+```json
+{
+  "api_key": "your_api_key",
+  "card_type": "VIETTEL",
+  "serial": "12345678901",
+  "pin": "123456789012345",
+  "amount": 50000,
+  "request_id": "SP-1234567890"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "code": 100,
+  "message": "Thẻ đang được xử lý",
+  "request_id": "SP-1234567890"
+}
+```
+
+### Check Status
+
+```
+POST https://api.card2k.com/card/check
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "code": 1,
+  "message": "Thành công",
+  "amount": 50000,
+  "real_amount": 50000
+}
+```
+
+## Status Codes
+
+| Code | Mô tả | Hành động |
+|------|-------|-----------|
+| `1` | Thành công | Award coins |
+| `2` | Sai mệnh giá | Thông báo lỗi |
+| `3` | Thẻ lỗi/đã dùng | Thông báo lỗi |
+| `100` | Đang xử lý | Tiếp tục polling |
+| `-1` | Lỗi hệ thống | Thông báo lỗi |
+
+## Testing
+
+<Steps>
+
+1. Bật debug mode trong `main-config.yml`
+2. Reload plugin: `/simppayadmin reload`
+3. Test với thẻ 10k-20k qua `/napthe`
+4. Kiểm tra console logs
+5. Verify coins được cộng đúng
+
+</Steps>
+
+## Troubleshooting
+
+### Invalid API Key
+
+<Aside type="caution">
+  **Lỗi**: `Invalid API Key`
+
+  **Giải pháp**:
+  - Kiểm tra lại API Key trong config
+  - Copy chính xác từ dashboard
+  - Reload plugin
+</Aside>
+
+### Insufficient balance
+
+<Aside type="caution">
+  **Lỗi**: `Tài khoản không đủ số dư`
+
+  **Giải pháp**:
+  - Nạp tiền vào tài khoản Card2K
+  - Kiểm tra balance trên dashboard
+</Aside>
+
+## Tỷ lệ chiết khấu
+
+| Loại thẻ | Chiết khấu |
+|----------|------------|
+| Viettel | ~24% |
+| Mobifone | ~24% |
+| Vinaphone | ~24% |
+
+<Aside type="note">
+  Tỷ lệ có thể thay đổi. Kiểm tra dashboard Card2K để biết tỷ lệ hiện tại.
+</Aside>
+
+## Xem thêm
+
+- [TheSieuToc](/payment-gateways/card/thesieutoc/) - Alternative gateway
+- [Doithe1s](/payment-gateways/card/doithe1s/) - Backup gateway

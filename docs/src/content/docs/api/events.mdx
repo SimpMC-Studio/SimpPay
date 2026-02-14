@@ -1,0 +1,321 @@
+---
+title: Custom Events
+description: Danh sách custom events của SimpPay
+---
+
+SimpPay fire nhiều custom events trong payment lifecycle. Developers có thể listen các events này để tích hợp với plugins khác.
+
+## Payment Events
+
+### PaymentBankPromptEvent
+
+Fire khi hiển thị QR code/payment link cho người chơi.
+
+**Package:** `me.typical.simppay.event.payment`
+
+**Cancellable:** No
+
+**Fields:**
+```java
+Player player              // Người chơi
+String orderId             // Mã đơn hàng
+int amount                 // Số tiền (VNĐ)
+String qrCodeUrl           // URL QR code
+String paymentUrl          // URL payment link
+String bankName            // Tên ngân hàng
+```
+
+**Ví dụ:**
+```java
+@EventHandler
+public void onBankPrompt(PaymentBankPromptEvent event) {
+    Player player = event.getPlayer();
+    int amount = event.getAmount();
+
+    // Custom logic
+    player.sendMessage("Đang tạo QR code " + amount + "đ...");
+}
+```
+
+### PaymentQueueSuccessEvent
+
+Fire khi payment được queue thành công (bắt đầu polling).
+
+**Package:** `me.typical.simppay.event.payment`
+
+**Cancellable:** No
+
+**Fields:**
+```java
+Player player              // Người chơi
+String orderId             // Mã đơn hàng
+int amount                 // Số tiền (VNĐ)
+PaymentType type           // CARD hoặc BANKING
+```
+
+**Ví dụ:**
+```java
+@EventHandler
+public void onPaymentQueued(PaymentQueueSuccessEvent event) {
+    String orderId = event.getOrderId();
+
+    // Start custom tracking
+    trackPayment(orderId);
+}
+```
+
+### PaymentSuccessEvent
+
+Fire khi thanh toán thành công.
+
+**Package:** `me.typical.simppay.event.payment`
+
+**Cancellable:** No
+
+**Fields:**
+```java
+Player player              // Người chơi
+String orderId             // Mã đơn hàng
+int amount                 // Số tiền (VNĐ)
+int coinsAwarded           // Số coins được cộng
+PaymentType type           // CARD hoặc BANKING
+```
+
+**Ví dụ:**
+```java
+@EventHandler
+public void onPaymentSuccess(PaymentSuccessEvent event) {
+    Player player = event.getPlayer();
+    int amount = event.getAmount();
+    int coins = event.getCoinsAwarded();
+
+    // Custom rewards
+    player.sendMessage("§aCảm ơn bạn đã nạp " + amount + "đ!");
+    player.sendMessage("§aBạn nhận được " + coins + " coins!");
+
+    // Give bonus items
+    player.getInventory().addItem(new ItemStack(Material.DIAMOND, 5));
+}
+```
+
+### PaymentFailedEvent
+
+Fire khi thanh toán thất bại.
+
+**Package:** `me.typical.simppay.event.payment`
+
+**Cancellable:** No
+
+**Fields:**
+```java
+Player player              // Người chơi
+String orderId             // Mã đơn hàng
+int amount                 // Số tiền (VNĐ)
+String reason              // Lý do thất bại
+PaymentType type           // CARD hoặc BANKING
+```
+
+**Ví dụ:**
+```java
+@EventHandler
+public void onPaymentFailed(PaymentFailedEvent event) {
+    Player player = event.getPlayer();
+    String reason = event.getReason();
+
+    // Log failure
+    logger.warning("Payment failed for " + player.getName() + ": " + reason);
+
+    // Send support message
+    player.sendMessage("§cThanh toán thất bại. Liên hệ admin nếu cần hỗ trợ.");
+}
+```
+
+## Milestone Events
+
+### PlayerMilestoneEvent
+
+Fire khi người chơi hoàn thành milestone.
+
+**Package:** `me.typical.simppay.event.milestone`
+
+**Cancellable:** No
+
+**Fields:**
+```java
+Player player              // Người chơi
+String milestoneName       // Tên milestone
+int milestoneAmount        // Số tiền milestone
+PeriodType period          // Kỳ (ALL, DAILY, WEEKLY, MONTHLY, YEARLY)
+List<String> commands      // Commands sẽ thực thi
+```
+
+**Ví dụ:**
+```java
+@EventHandler
+public void onPlayerMilestone(PlayerMilestoneEvent event) {
+    Player player = event.getPlayer();
+    String name = event.getMilestoneName();
+
+    // Custom celebration
+    player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+
+    // Broadcast
+    Bukkit.broadcastMessage("§6" + player.getName() + " đã đạt " + name + "!");
+}
+```
+
+### ServerMilestoneEvent
+
+Fire khi server đạt milestone.
+
+**Package:** `me.typical.simppay.event.milestone`
+
+**Cancellable:** No
+
+**Fields:**
+```java
+String milestoneName       // Tên milestone
+int milestoneAmount        // Số tiền milestone
+PeriodType period          // Kỳ
+List<String> commands      // Commands sẽ thực thi
+```
+
+**Ví dụ:**
+```java
+@EventHandler
+public void onServerMilestone(ServerMilestoneEvent event) {
+    String name = event.getMilestoneName();
+
+    // Fireworks for all online players
+    for (Player player : Bukkit.getOnlinePlayers()) {
+        spawnFirework(player.getLocation());
+    }
+}
+```
+
+### MilestoneCompleteEvent
+
+Generic milestone completion event (parent của PlayerMilestoneEvent và ServerMilestoneEvent).
+
+**Package:** `me.typical.simppay.event.milestone`
+
+**Cancellable:** No
+
+## Webhook Events
+
+### SepayWebhookReceivedEvent
+
+Fire khi nhận webhook từ Sepay (async).
+
+**Package:** `me.typical.simppay.event.webhook`
+
+**Cancellable:** No
+
+**Async:** Yes
+
+**Fields:**
+```java
+String transactionId       // ID giao dịch
+String accountNumber       // Số tài khoản
+int amount                 // Số tiền
+String transactionContent  // Nội dung chuyển khoản
+String bankCode            // Mã ngân hàng
+long timestamp             // Timestamp
+```
+
+**Ví dụ:**
+```java
+@EventHandler
+public void onSepayWebhook(SepayWebhookReceivedEvent event) {
+    String content = event.getTransactionContent();
+    int amount = event.getAmount();
+
+    // Custom webhook processing
+    logger.info("Received Sepay webhook: " + content + " - " + amount + "đ");
+}
+```
+
+## Event Priority
+
+Listeners được thực thi theo thứ tự priority:
+
+1. **LOWEST** - Custom pre-processing
+2. **LOW** - Custom logic
+3. **NORMAL** - Default SimpPay listeners
+4. **HIGH** - Custom post-processing
+5. **HIGHEST** - Final custom logic
+6. **MONITOR** - Logging only (không modify event)
+
+**Ví dụ:**
+```java
+@EventHandler(priority = EventPriority.HIGH)
+public void onPaymentSuccess(PaymentSuccessEvent event) {
+    // Runs after SimpPay's default processing
+}
+```
+
+## Ví dụ tích hợp
+
+### Discord webhook
+
+```java
+@EventHandler
+public void onPaymentSuccess(PaymentSuccessEvent event) {
+    Player player = event.getPlayer();
+    int amount = event.getAmount();
+
+    // Send to Discord
+    DiscordWebhook webhook = new DiscordWebhook(WEBHOOK_URL);
+    webhook.setContent(player.getName() + " đã nạp " + amount + "đ!");
+    webhook.execute();
+}
+```
+
+### Custom statistics
+
+```java
+@EventHandler
+public void onPaymentSuccess(PaymentSuccessEvent event) {
+    Player player = event.getPlayer();
+    int amount = event.getAmount();
+
+    // Update custom stats
+    PlayerStats stats = getStats(player);
+    stats.addPayment(amount);
+    stats.incrementPaymentCount();
+    stats.save();
+}
+```
+
+### Bonus rewards
+
+```java
+@EventHandler
+public void onPlayerMilestone(PlayerMilestoneEvent event) {
+    Player player = event.getPlayer();
+    int amount = event.getMilestoneAmount();
+
+    // Give bonus based on amount
+    if (amount >= 1000000) {
+        player.getInventory().addItem(new ItemStack(Material.NETHERITE_INGOT, 5));
+        player.sendMessage("§6Bonus: 5 Netherite Ingot!");
+    }
+}
+```
+
+## Best practices
+
+1. **Async events**: Không block main thread trong async event handlers
+
+2. **Error handling**: Catch exceptions để không break event chain
+
+3. **Priority**: Dùng priority phù hợp để control execution order
+
+4. **Performance**: Tránh heavy operations trong event handlers
+
+5. **Cancellable**: Kiểm tra `event.isCancelled()` trước khi xử lý
+
+## Xem thêm
+
+- [Bukkit Event API](https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/event/Event.html)
+- [Event Priority](https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/event/EventPriority.html)

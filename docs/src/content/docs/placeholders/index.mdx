@@ -1,0 +1,249 @@
+---
+title: PlaceholderAPI
+description: Tất cả placeholders của SimpPay
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+SimpPay cung cấp nhiều placeholders qua PlaceholderAPI để hiển thị thông tin nạp tiền.
+
+## Cài đặt
+
+1. Tải [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/)
+2. Đặt vào `plugins/` và restart server
+3. SimpPay tự động đăng ký placeholders
+
+## Player stats
+
+<Tabs>
+  <TabItem label="Tổng nạp">
+    ### Tổng nạp (raw number)
+
+    ```
+    %simppay_total%              - Tổng nạp từ trước đến nay
+    %simppay_total_daily%        - Tổng nạp trong ngày
+    %simppay_total_weekly%       - Tổng nạp trong tuần
+    %simppay_total_monthly%      - Tổng nạp trong tháng
+    %simppay_total_yearly%       - Tổng nạp trong năm
+    ```
+
+    **Ví dụ output:** `150000` (150k VNĐ)
+
+    ### Tổng nạp (formatted)
+
+    ```
+    %simppay_total_formatted%           - Tổng nạp (formatted)
+    %simppay_total_daily_formatted%     - Nạp ngày (formatted)
+    %simppay_total_weekly_formatted%    - Nạp tuần (formatted)
+    %simppay_total_monthly_formatted%   - Nạp tháng (formatted)
+    %simppay_total_yearly_formatted%    - Nạp năm (formatted)
+    ```
+
+    **Ví dụ output:** `150.000đ`
+  </TabItem>
+
+  <TabItem label="Theo loại">
+    ### Nạp theo loại
+
+    ```
+    %simppay_card_total%              - Tổng nạp thẻ cào
+    %simppay_card_total_formatted%    - Tổng nạp thẻ (formatted)
+    %simppay_bank_total%              - Tổng nạp banking
+    %simppay_bank_total_formatted%    - Tổng nạp banking (formatted)
+    ```
+
+    **Ví dụ:**
+    - Card: `100.000đ`
+    - Bank: `50.000đ`
+  </TabItem>
+
+  <TabItem label="Streak">
+    ### Streak info
+
+    ```
+    %simppay_streak_current%    - Streak hiện tại (số ngày)
+    %simppay_streak_best%       - Best streak (số ngày)
+    ```
+
+    **Ví dụ:**
+    - Current: `7`
+    - Best: `14`
+  </TabItem>
+</Tabs>
+
+## Server stats
+
+```
+%simppay_server_total%              - Tổng nạp của server
+%simppay_server_total_formatted%    - Tổng nạp server (formatted)
+```
+
+**Ví dụ:** `10.500.000đ`
+
+## Leaderboard
+
+### Top player name
+
+```
+%simppay_leaderboard_<type>_<rank>_name%
+```
+
+**Types:** `all`, `daily`, `weekly`, `monthly`, `yearly`
+
+**Ranks:** `1` đến `10`
+
+**Ví dụ:**
+```
+%simppay_leaderboard_all_1_name%        - Top 1 tổng nạp
+%simppay_leaderboard_daily_1_name%      - Top 1 nạp ngày
+%simppay_leaderboard_weekly_2_name%     - Top 2 nạp tuần
+%simppay_leaderboard_monthly_3_name%    - Top 3 nạp tháng
+```
+
+### Top player amount
+
+```
+%simppay_leaderboard_<type>_<rank>_amount%
+```
+
+**Ví dụ:**
+```
+%simppay_leaderboard_all_1_amount%      - Số tiền top 1 tổng
+%simppay_leaderboard_daily_1_amount%    - Số tiền top 1 ngày
+```
+
+## Promo info
+
+```
+%simppay_end_promo%    - Ngày kết thúc khuyến mãi
+```
+
+**Format:** `dd/MM/yyyy HH:mm`
+
+**Ví dụ:** `31/12/2026 23:59`
+
+## Ví dụ sử dụng
+
+### Scoreboard
+
+```yaml
+# scoreboard.yml
+lines:
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+  - "&e&lTHÔNG TIN NẠP TIỀN"
+  - ""
+  - "&6Tổng nạp: &f%simppay_total_formatted%"
+  - "&6Nạp tháng: &f%simppay_total_monthly_formatted%"
+  - "&6Streak: &f%simppay_streak_current% ngày 🔥"
+  - ""
+  - "&e&lTOP NẠP THÁNG"
+  - "&6#1 &f%simppay_leaderboard_monthly_1_name%"
+  - "&7   %simppay_leaderboard_monthly_1_amount%đ"
+  - "&6#2 &f%simppay_leaderboard_monthly_2_name%"
+  - "&7   %simppay_leaderboard_monthly_2_amount%đ"
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+```
+
+### TAB plugin
+
+```yaml
+# tab.yml
+header:
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+  - "&e&lSERVER STATS"
+  - ""
+  - "&6Tổng nạp server: &f%simppay_server_total_formatted%"
+  - "&6Event kết thúc: &f%simppay_end_promo%"
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+
+footer:
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+  - "&e&lTOP 3 NẠP TUẦN"
+  - "&6#1 &f%simppay_leaderboard_weekly_1_name% &7- &e%simppay_leaderboard_weekly_1_amount%đ"
+  - "&6#2 &f%simppay_leaderboard_weekly_2_name% &7- &e%simppay_leaderboard_weekly_2_amount%đ"
+  - "&6#3 &f%simppay_leaderboard_weekly_3_name% &7- &e%simppay_leaderboard_weekly_3_amount%đ"
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+```
+
+### Chat format
+
+```yaml
+# chat-format.yml
+format: "&7[&6%simppay_leaderboard_all_rank%&7] &f%player_name%: %message%"
+```
+
+### Hologram (DecentHolograms)
+
+```yaml
+# holograms/top_napthe.yml
+lines:
+  - "<gradient:gold:yellow>TOP NẠP THÁNG</gradient>"
+  - ""
+  - "<gold>#1</gold> <white>%simppay_leaderboard_monthly_1_name%</white>"
+  - "<gray>%simppay_leaderboard_monthly_1_amount%đ</gray>"
+  - ""
+  - "<gold>#2</gold> <white>%simppay_leaderboard_monthly_2_name%</white>"
+  - "<gray>%simppay_leaderboard_monthly_2_amount%đ</gray>"
+  - ""
+  - "<gold>#3</gold> <white>%simppay_leaderboard_monthly_3_name%</white>"
+  - "<gray>%simppay_leaderboard_monthly_3_amount%đ</gray>"
+  - ""
+  - "<yellow>Event kết thúc: %simppay_end_promo%</yellow>"
+```
+
+### DeluxeMenus
+
+```yaml
+# menus/napthe_info.yml
+menu_title: 'Thông tin nạp tiền'
+size: 27
+
+items:
+  info:
+    material: PAPER
+    slot: 13
+    display_name: '&6&lThông tin của bạn'
+    lore:
+      - ''
+      - '&7Tổng nạp: &e%simppay_total_formatted%'
+      - '&7Nạp tháng: &e%simppay_total_monthly_formatted%'
+      - '&7Streak: &e%simppay_streak_current% ngày'
+      - '&7Best streak: &e%simppay_streak_best% ngày'
+      - ''
+```
+
+## Testing placeholders
+
+Dùng lệnh PlaceholderAPI để test:
+
+```
+/papi parse me %simppay_total_formatted%
+/papi parse me %simppay_streak_current%
+/papi parse me %simppay_leaderboard_all_1_name%
+```
+
+## Troubleshooting
+
+### Placeholder trả về raw text
+
+**Nguyên nhân:** PlaceholderAPI chưa cài hoặc SimpPay chưa đăng ký
+
+**Giải pháp:**
+1. Cài PlaceholderAPI
+2. Restart server
+3. Check: `/papi list` → Tìm `simppay`
+
+### Leaderboard placeholder trả về empty
+
+**Nguyên nhân:** Chưa có data hoặc cache chưa populate
+
+**Giải pháp:**
+1. Đợi có payment đầu tiên
+2. Check database có data
+3. Reload plugin: `/simppayadmin reload`
+
+## Xem thêm
+
+- [Bảng xếp hạng](/features/leaderboard/) - Leaderboard system
+- [Streak](/features/streaks/) - Streak system
+- [PlaceholderAPI Wiki](https://github.com/PlaceholderAPI/PlaceholderAPI/wiki)

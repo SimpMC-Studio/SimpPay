@@ -1,0 +1,409 @@
+---
+title: Sepay
+description: Hướng dẫn cấu hình cổng thanh toán Sepay với webhook
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Sepay là cổng thanh toán QR banking với webhook thời gian thực, cho phép xác nhận thanh toán tức thì.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. **Truy cập website**
+
+   Vào [https://my.sepay.vn](https://my.sepay.vn)
+
+2. **Đăng ký tài khoản**
+
+   - Click "Đăng ký"
+   - Điền thông tin và xác minh email
+
+3. **Liên kết ngân hàng**
+
+   - Vào **Tài khoản** → **Ngân hàng**
+   - Thêm tài khoản ngân hàng
+   - Xác minh bằng chuyển khoản test
+
+4. **Lấy API Key**
+
+   - Vào **API** → **Thông tin API**
+   - Copy **API Key**
+
+5. **Cấu hình webhook**
+
+   - Vào **API** → **Webhook**
+   - Nhập URL: `http://your-server-ip:8080/webhook/sepay`
+   - Nhập **Webhook API Key** (tự tạo, dùng cho xác thực)
+   - Lưu cấu hình
+
+</Steps>
+
+<Aside type="caution">
+  Sepay webhook yêu cầu server có IP public hoặc domain. Không hoạt động với localhost.
+</Aside>
+
+## Cấu hình plugin
+
+File: `plugins/SimpPay/banking/sepay-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+enabled: true
+
+# API Key từ Sepay dashboard
+api-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Bank account info
+account-number: "1234567890"
+account-name: "NGUYEN VAN A"
+bank-code: "VCB"
+
+# Webhook settings
+webhook-port: 8080
+webhook-path: "/webhook/sepay"
+webhook-api-key: "your_webhook_secret_key_here"
+
+# Amount limits
+min-amount: 10000
+max-amount: 50000000
+```
+
+## Chi tiết cấu hình
+
+### api-key
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: API Key từ Sepay dashboard
+
+Lấy từ: Sepay Dashboard → API → Thông tin API
+
+### account-number / account-name / bank-code
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: Thông tin tài khoản ngân hàng nhận tiền
+
+Phải khớp với tài khoản đã liên kết trên Sepay.
+
+### webhook-port
+
+- **Kiểu**: `integer`
+- **Mặc định**: `8080`
+- **Mô tả**: Port cho HTTP webhook server
+
+Plugin sẽ tạo HTTP server lắng nghe trên port này.
+
+**Lưu ý:**
+- Port phải được mở trên firewall
+- Không được dùng bởi service khác
+- Khuyến nghị: `8080`, `8081`, `9000`
+
+### webhook-path
+
+- **Kiểu**: `string`
+- **Mặc định**: `"/webhook/sepay"`
+- **Mô tả**: Đường dẫn endpoint webhook
+
+Full URL sẽ là: `http://your-server-ip:8080/webhook/sepay`
+
+### webhook-api-key
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: API Key để xác thực webhook requests
+
+Tự tạo một key bất kỳ (ví dụ: UUID) và cấu hình cả trong:
+- Plugin config (`webhook-api-key`)
+- Sepay dashboard (Webhook API Key)
+
+<Aside type="caution">
+  Webhook API Key phải khớp giữa plugin và Sepay dashboard. Nếu không khớp, webhook sẽ bị từ chối (403 Forbidden).
+</Aside>
+
+## Setup Webhook
+
+<Steps>
+
+1. **Mở port trên firewall**
+
+   Windows:
+   ```powershell
+   netsh advfirewall firewall add rule name="SimpPay Webhook" dir=in action=allow protocol=TCP localport=8080
+   ```
+
+   Linux:
+   ```bash
+   sudo ufw allow 8080/tcp
+   ```
+
+2. **Kiểm tra IP public**
+
+   Truy cập [https://whatismyipaddress.com](https://whatismyipaddress.com) để lấy IP public.
+
+3. **Cấu hình webhook trên Sepay**
+
+   - URL: `http://YOUR_PUBLIC_IP:8080/webhook/sepay`
+   - Webhook API Key: Copy từ `webhook-api-key` trong config
+   - Lưu cấu hình
+
+4. **Test webhook**
+
+   Sepay dashboard có nút "Test Webhook". Click để test.
+
+5. **Kiểm tra console**
+
+   ```
+   [SimpPay] WebhookService: HTTP server started on port 8080
+   [SimpPay] WebhookService: Webhook endpoint: /webhook/sepay
+   [SimpPay] [DEBUG] SepayWebhookListener: Received webhook from Sepay
+   [SimpPay] [DEBUG] SepayWebhookListener: Validated webhook signature
+   ```
+
+</Steps>
+
+<Aside type="tip">
+  Nếu server ở sau NAT/router, cần port forwarding từ router đến server.
+</Aside>
+
+## Webhook Flow
+
+1. **Người chơi chuyển khoản**
+
+   Quét QR và chuyển khoản qua app ngân hàng
+
+2. **Sepay nhận tiền**
+
+   Sepay phát hiện giao dịch mới trong tài khoản
+
+3. **Sepay gửi webhook**
+
+   ```
+   POST http://your-server:8080/webhook/sepay
+   Authorization: Apikey your_webhook_api_key
+   Content-Type: application/json
+
+   {
+     "id": 123456,
+     "gateway": "VCB",
+     "transaction_date": "2026-02-14 10:30:00",
+     "account_number": "1234567890",
+     "sub_account": null,
+     "amount_in": 50000,
+     "amount_out": 0,
+     "accumulated": 1000000,
+     "code": "FT12345678",
+     "transaction_content": "SP-1234567890",
+     "reference_number": "FT12345678",
+     "body": "..."
+   }
+   ```
+
+4. **Plugin xử lý**
+
+   - Validate webhook API key
+   - Parse transaction content để lấy order ID
+   - Fire `SepayWebhookReceivedEvent`
+   - Award coins cho người chơi
+
+5. **Người chơi nhận coins**
+
+   Tức thì (< 1 giây)
+
+## API Endpoints
+
+### Create QR Code
+
+```
+POST https://my.sepay.vn/userapi/transactions/create-qr
+```
+
+**Request:**
+```json
+{
+  "account_number": "1234567890",
+  "account_name": "NGUYEN VAN A",
+  "amount": 50000,
+  "description": "SP-1234567890"
+}
+```
+
+**Response:**
+```json
+{
+  "status": 200,
+  "messages": "Thành công",
+  "data": {
+    "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+  }
+}
+```
+
+## Webhook Security
+
+Plugin xác thực webhook bằng `Authorization` header:
+
+```
+Authorization: Apikey your_webhook_api_key
+```
+
+Nếu header không khớp với `webhook-api-key` trong config, request bị từ chối với `403 Forbidden`.
+
+<Aside type="caution">
+  **Bảo mật webhook:**
+  - Dùng webhook API key mạnh (UUID hoặc random string dài)
+  - Không chia sẻ webhook API key
+  - Không commit vào Git
+  - Đổi key định kỳ (mỗi 3-6 tháng)
+</Aside>
+
+## Testing
+
+<Steps>
+
+1. **Bật debug mode**
+
+   `main-config.yml`:
+   ```yaml
+   debug: true
+   ```
+
+2. **Reload plugin**
+
+   ```
+   /simppayadmin reload
+   ```
+
+3. **Kiểm tra webhook server**
+
+   Console sẽ hiển thị:
+   ```
+   [SimpPay] WebhookService: HTTP server started on port 8080
+   [SimpPay] WebhookService: Webhook endpoint: /webhook/sepay
+   ```
+
+4. **Test webhook từ Sepay**
+
+   Vào Sepay Dashboard → API → Webhook → Click "Test Webhook"
+
+5. **Kiểm tra console**
+
+   ```
+   [SimpPay] [DEBUG] SepayWebhookListener: Received webhook
+   [SimpPay] [DEBUG] SepayWebhookListener: Transaction content: SP-1234567890
+   [SimpPay] [DEBUG] SepayWebhookListener: Found payment for order SP-1234567890
+   [SimpPay] [DEBUG] PaymentSuccessEvent fired
+   ```
+
+6. **Test thanh toán thật**
+
+   ```
+   /bank 50000
+   ```
+
+   Quét QR và chuyển khoản. Coins sẽ được cộng tức thì.
+
+</Steps>
+
+## Troubleshooting
+
+### Webhook không nhận được
+
+<Aside type="caution">
+  **Lỗi**: Sepay gửi webhook nhưng plugin không nhận
+
+  **Nguyên nhân**:
+  - Port chưa mở trên firewall
+  - IP/domain sai trong Sepay config
+  - Server ở sau NAT chưa port forward
+
+  **Giải pháp**:
+  - Kiểm tra port đã mở: `netstat -an | findstr 8080` (Windows) hoặc `netstat -tuln | grep 8080` (Linux)
+  - Verify IP public đúng
+  - Cấu hình port forwarding trên router
+  - Test bằng curl: `curl -H "Authorization: Apikey xxx" http://your-ip:8080/webhook/sepay`
+</Aside>
+
+### Webhook bị từ chối (403)
+
+<Aside type="caution">
+  **Lỗi**: `403 Forbidden` khi Sepay gửi webhook
+
+  **Nguyên nhân**: Webhook API Key không khớp
+
+  **Giải pháp**:
+  - Kiểm tra `webhook-api-key` trong config
+  - Kiểm tra Webhook API Key trên Sepay dashboard
+  - Đảm bảo hai key giống hệt nhau
+  - Reload plugin sau khi sửa
+</Aside>
+
+### QR code không hiển thị
+
+<Aside type="caution">
+  **Lỗi**: QR code không load
+
+  **Nguyên nhân**: API Key sai hoặc tài khoản chưa liên kết
+
+  **Giải pháp**:
+  - Kiểm tra API Key trong config
+  - Xác minh tài khoản ngân hàng đã liên kết trên Sepay
+  - Kiểm tra `account-number`, `account-name`, `bank-code` đúng
+</Aside>
+
+### Port already in use
+
+<Aside type="caution">
+  **Lỗi**: `Port 8080 already in use`
+
+  **Nguyên nhân**: Port đã được dùng bởi service khác
+
+  **Giải pháp**:
+  - Đổi `webhook-port` sang port khác (ví dụ: 8081, 9000)
+  - Hoặc stop service đang dùng port 8080
+  - Cập nhật URL webhook trên Sepay dashboard
+</Aside>
+
+## Performance
+
+Sepay webhook sử dụng **virtual threads** (Java 21+) cho hiệu suất cao:
+
+- Xử lý hàng trăm webhooks đồng thời
+- Không block main thread
+- Latency < 100ms
+
+<Aside type="tip">
+  Khuyến nghị dùng Java 21 để tận dụng virtual threads. Java 8-17 vẫn hoạt động nhưng dùng thread pool thông thường.
+</Aside>
+
+## Best practices
+
+1. **Dùng domain thay vì IP**: Nếu có domain, dùng `https://yourdomain.com/webhook/sepay` thay vì IP
+
+2. **SSL/TLS**: Nếu có SSL cert, cấu hình HTTPS cho webhook (secure hơn)
+
+3. **Monitor webhook**: Log tất cả webhook requests để troubleshoot
+
+4. **Backup gateway**: Cấu hình PayOS làm backup khi Sepay down
+
+5. **Rate limiting**: Sepay có rate limit, không spam API
+
+## So sánh với Polling
+
+| | Webhook (Sepay) | Polling (PayOS/Web2M) |
+|---|---|---|
+| **Tốc độ** | < 1s | 5-30s |
+| **Tài nguyên** | Thấp | Cao (nhiều API calls) |
+| **Setup** | Khó (cần mở port) | Dễ |
+| **Reliability** | Cao | Trung bình |
+| **Khuyến nghị** | Server lớn | Server nhỏ/trung |
+
+## Xem thêm
+
+- [PayOS](/payment-gateways/banking/payos/) - Polling gateway
+- [Web2M](/payment-gateways/banking/web2m/) - Alternative
+- [Cấu hình xu & phần thưởng](/configuration/coins-rewards/)

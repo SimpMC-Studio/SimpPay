@@ -1,0 +1,63 @@
+---
+title: Giới thiệu
+description: Tổng quan về SimpPay và các tính năng chính
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+SimpPay là plugin Minecraft thanh toán tự động được thiết kế cho các server Việt Nam. Plugin hỗ trợ đa dạng cổng thanh toán bao gồm thẻ cào và QR banking, giúp người chơi nạp tiền dễ dàng và tự động nhận phần thưởng.
+
+## Tại sao chọn SimpPay?
+
+<CardGrid>
+  <Card title="Đa dạng cổng thanh toán" icon="puzzle">
+    - 5 cổng thẻ cào: TheSieuToc, Card2K, Gachthe1s, TheSieuRe, Doithe1s
+    - 3 cổng QR banking: PayOS, Web2M, Sepay
+    - Dễ dàng thêm cổng mới qua API
+  </Card>
+
+<Card title="Tự động hóa hoàn toàn" icon="rocket">
+  - Webhook Sepay cho xác nhận tức thì - Polling tự động cho các cổng khác -
+  Không cần admin xử lý thủ công
+</Card>
+
+<Card title="Tính năng phong phú" icon="star">
+  - Milestone cá nhân và server - Streak nạp liên tiếp - Nạp lần đầu với phần
+  thưởng đặc biệt - Bảng xếp hạng theo nhiều kỳ
+</Card>
+
+  <Card title="Hiệu suất cao" icon="laptop">
+    - Cache thông minh giảm truy vấn database
+    - FoliaLib tương thích với Folia
+    - Async processing cho webhook
+    - Batch queries tối ưu
+  </Card>
+</CardGrid>
+
+## Yêu cầu hệ thống
+
+- **Server**: Paper 1.21 trở lên (và Folia)
+- **Java**: Java 8 trở lên (khuyến nghị Java 21 cho webhook performance)
+- **Database**: H2 (embedded) hoặc MySQL/MariaDB
+- **Plugins tùy chọn**:
+  - PlaceholderAPI (cho placeholders)
+  - PlayerPoints hoặc CoinsEngine (cho hệ thống xu)
+  - Floodgate (cho người chơi Bedrock)
+
+## Bước tiếp theo
+
+<CardGrid>
+  <Card title="Cài đặt plugin" icon="rocket">
+    Tải và cài đặt SimpPay lên server của bạn
+
+    [Hướng dẫn cài đặt →](/getting-started/installation/)
+
+  </Card>
+
+  <Card title="Cấu hình nhanh" icon="setting">
+    Thiết lập cổng thanh toán đầu tiên
+
+    [Bắt đầu nhanh →](/getting-started/quick-start/)
+
+  </Card>
+</CardGrid>

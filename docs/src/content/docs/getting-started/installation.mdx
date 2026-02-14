@@ -1,0 +1,178 @@
+---
+title: Cài đặt
+description: Hướng dẫn cài đặt SimpPay lên server Minecraft
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Hướng dẫn này sẽ giúp bạn cài đặt SimpPay lên server Paper/Spigot/Folia.
+
+## Yêu cầu
+
+Trước khi bắt đầu, đảm bảo server của bạn đáp ứng các yêu cầu sau:
+
+- **Server**: Paper 1.13+ (khuyến nghị Paper 1.21.4)
+- **Java**: Java 8+ (khuyến nghị Java 21 cho webhook performance)
+- **RAM**: Tối thiểu 512MB cho plugin
+- **Plugins**: PlaceholderAPI (tùy chọn), PlayerPoints hoặc CoinsEngine (tùy chọn)
+
+<Aside type="tip">
+  SimpPay tương thích với Folia thông qua FoliaLib. Không cần cấu hình thêm.
+</Aside>
+
+## Cài đặt plugin
+
+<Steps>
+
+1. **Tải plugin**
+
+   Tải file `SimpPay-<version>.jar` từ:
+   - [GitHub Releases](https://github.com/typical-mc/SimpPay/releases)
+   - [SpigotMC](https://www.spigotmc.org/resources/simppay.xxxxx/)
+   - [Modrinth](https://modrinth.com/plugin/simppay)
+
+2. **Upload lên server**
+
+   Copy file JAR vào thư mục `plugins/` của server:
+   ```bash
+   /your-server/
+   └── plugins/
+       └── SimpPay-1.0.0.jar
+   ```
+
+3. **Khởi động server**
+
+   Khởi động server để plugin tạo các file cấu hình mặc định:
+   ```bash
+   java -jar paper.jar
+   ```
+
+4. **Kiểm tra cài đặt**
+
+   Sau khi server khởi động, kiểm tra console:
+   ```
+   [SimpPay] Loading all configurations
+   [SimpPay] All configurations loaded successfully
+   [SimpPay] SimpPay v1.0.0 enabled!
+   ```
+
+5. **Cấu hình dependencies (tùy chọn)**
+
+   Nếu muốn sử dụng PlaceholderAPI hoặc hệ thống xu:
+
+   - **PlaceholderAPI**: Tải từ [SpigotMC](https://www.spigotmc.org/resources/placeholderapi.6245/)
+   - **PlayerPoints**: Tải từ [SpigotMC](https://www.spigotmc.org/resources/playerpoints.80745/)
+   - **CoinsEngine**: Tải từ [SpigotMC](https://www.spigotmc.org/resources/coinsengine.84121/)
+
+   Đặt các plugin này vào `plugins/` và khởi động lại server.
+
+</Steps>
+
+## Cấu trúc thư mục
+
+Sau khi cài đặt, SimpPay sẽ tạo cấu trúc thư mục như sau:
+
+```
+plugins/
+└── SimpPay/
+    ├── main-config.yml
+    ├── message-config.yml
+    ├── database-config.yml
+    ├── coins-config.yml
+    ├── streak-config.yml
+    ├── naplandau-config.yml
+    ├── card/
+    │   ├── thesieutoc-config.yml
+    │   ├── card2k-config.yml
+    │   ├── gachthe1s-config.yml
+    │   ├── thesieure-config.yml
+    │   └── doithe1s-config.yml
+    ├── banking/
+    │   ├── payos-config.yml
+    │   ├── web2m-config.yml
+    │   └── sepay-config.yml
+    ├── menus/
+    │   ├── card-list-view-config.yml
+    │   ├── card-price-view-config.yml
+    │   ├── payment-history-view-config.yml
+    │   └── streak-menu-view-config.yml
+    └── milestones/
+        ├── milestones-player-config.yml
+        └── milestones-server-config.yml
+```
+## Xác minh cài đặt
+
+Để xác minh plugin hoạt động đúng:
+
+<Steps>
+
+1. **Kiểm tra lệnh**
+
+   Chạy lệnh trong game:
+   ```
+   /napthe
+   ```
+
+   Bạn sẽ thấy menu GUI mở ra (nếu chưa cấu hình API keys, các nút sẽ bị disable).
+
+2. **Kiểm tra permissions**
+
+   Xác nhận permissions được load:
+   ```
+   /lp user <player> permission check simppay.napthe
+   ```
+
+3. **Kiểm tra database**
+
+   Kiểm tra file database được tạo:
+   - H2: `plugins/SimpPay/database.mv.db`
+   - MySQL: Kết nối đến database server
+
+</Steps>
+
+## Gỡ lỗi
+
+### Plugin không load
+
+<Aside type="caution">
+  **Lỗi**: `Could not load 'plugins/SimpPay-1.0.0.jar'`
+
+  **Giải pháp**:
+  - Kiểm tra Java version (cần Java 8+)
+  - Kiểm tra Paper version (cần 1.13+)
+  - Xem log chi tiết trong `logs/latest.log`
+</Aside>
+
+### Dependencies không tải được
+
+<Aside type="caution">
+  **Lỗi**: `Failed to download dependency: xyz`
+
+  **Giải pháp**:
+  - Kiểm tra kết nối internet của server
+  - Thử xóa `plugins/SimpPay/libraries/` và khởi động lại
+  - Kiểm tra firewall không chặn Maven Central
+</Aside>
+
+### Database connection failed
+
+<Aside type="caution">
+  **Lỗi**: `Could not connect to database`
+
+  **Giải pháp**:
+  - Nếu dùng H2: Kiểm tra quyền ghi file trong `plugins/SimpPay/`
+  - Nếu dùng MySQL: Xác minh credentials trong `database-config.yml`
+  - Kiểm tra MySQL server đang chạy và cho phép remote connections
+</Aside>
+
+## Bước tiếp theo
+
+<Steps>
+
+1. [Cấu hình database](/configuration/database/) nếu muốn dùng MySQL thay vì H2
+
+2. [Thiết lập cổng thanh toán đầu tiên](/getting-started/quick-start/)
+
+3. [Cấu hình hệ thống xu](/configuration/coins-rewards/)
+
+</Steps>

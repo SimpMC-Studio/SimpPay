@@ -1,0 +1,247 @@
+---
+title: Thêm phần thưởng streak
+description: Hướng dẫn thêm streak milestone rewards
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Hướng dẫn thêm streak milestone rewards mới.
+
+## Thêm streak milestone
+
+<Steps>
+
+1. **Mở file config**
+
+   `plugins/SimpPay/streak-config.yml`
+
+2. **Thêm milestone entry**
+
+   ```yaml
+   milestones:
+     # ... existing milestones ...
+
+     # Milestone mới: 21 ngày
+     21:
+       name: "Streak 3 tuần"
+       commands:
+         - "give {player} diamond 40"
+         - "give {player} emerald 8"
+         - "broadcast &6{player} đã nạp 21 ngày liên tiếp!"
+       message: "<gradient:yellow:gold>🔥 Streak 21 ngày! Nhận 40 diamond + 8 emerald</gradient>"
+   ```
+
+3. **Reload plugin**
+
+   ```
+   /simppayadmin reload
+   ```
+
+4. **Test (cần đợi hoặc fake date)**
+
+   Streak cần thời gian thực để test. Có thể:
+   - Đợi 21 ngày
+   - Hoặc tạm sửa code để test với hours thay vì days
+
+</Steps>
+
+## Cấu trúc milestone
+
+```yaml
+<days>:                    # Số ngày streak (integer)
+  name: "Tên milestone"    # Tên để track completion
+  commands:                # Lệnh thực thi
+    - "command 1"
+    - "command 2"
+  message: "Message"       # Message gửi cho player (MiniMessage)
+```
+
+## Ví dụ streak set hoàn chỉnh
+
+### Short-term streaks (1-2 tuần)
+
+```yaml
+milestones:
+  3:
+    name: "Streak 3 ngày"
+    commands:
+      - "give {player} diamond 3"
+    message: "<green>🔥 Streak 3 ngày! Nhận 3 diamond</green>"
+
+  5:
+    name: "Streak 5 ngày"
+    commands:
+      - "give {player} diamond 6"
+      - "give {player} emerald 1"
+    message: "<gradient:green:aqua>🔥 Streak 5 ngày! Nhận 6 diamond + 1 emerald</gradient>"
+
+  7:
+    name: "Streak 1 tuần"
+    commands:
+      - "give {player} diamond 10"
+      - "give {player} emerald 2"
+    message: "<gradient:green:aqua>🔥 Streak 7 ngày! Nhận 10 diamond + 2 emerald</gradient>"
+
+  10:
+    name: "Streak 10 ngày"
+    commands:
+      - "give {player} diamond 18"
+      - "give {player} emerald 4"
+    message: "<gradient:yellow:gold>🔥 Streak 10 ngày! Nhận 18 diamond + 4 emerald</gradient>"
+
+  14:
+    name: "Streak 2 tuần"
+    commands:
+      - "give {player} diamond 30"
+      - "give {player} emerald 6"
+      - "give {player} netherite_ingot 1"
+    message: "<gradient:yellow:gold>🔥 Streak 14 ngày! Nhận 30 diamond + 6 emerald + 1 netherite</gradient>"
+```
+
+### Long-term streaks (1-3 tháng)
+
+```yaml
+  21:
+    name: "Streak 3 tuần"
+    commands:
+      - "give {player} diamond 50"
+      - "give {player} emerald 10"
+      - "give {player} netherite_ingot 2"
+    message: "<gradient:gold:yellow>🔥 Streak 21 ngày! Nhận 50 diamond + 10 emerald + 2 netherite</gradient>"
+
+  30:
+    name: "Streak 1 tháng"
+    commands:
+      - "give {player} diamond 80"
+      - "give {player} emerald 20"
+      - "give {player} netherite_ingot 3"
+      - "lp user {player} permission set streak.30days"
+    message: "<gradient:red:gold>🔥 Streak 30 ngày! Nhận 80 diamond + 20 emerald + 3 netherite</gradient>"
+
+  60:
+    name: "Streak 2 tháng"
+    commands:
+      - "give {player} diamond 180"
+      - "give {player} emerald 45"
+      - "give {player} netherite_ingot 7"
+      - "lp user {player} parent add vip"
+    message: "<gradient:purple:pink>🔥🔥 Streak 60 ngày! Nhận 180 diamond + 45 emerald + 7 netherite + VIP rank!</gradient>"
+
+  90:
+    name: "Streak 3 tháng"
+    commands:
+      - "give {player} diamond 300"
+      - "give {player} emerald 80"
+      - "give {player} netherite_ingot 12"
+      - "lp user {player} parent add vip_plus"
+      - "broadcast &6&l{player} đã nạp 90 ngày liên tiếp! 🔥🔥🔥"
+    message: "<gradient:gold:red>🔥🔥🔥 STREAK 90 NGÀY! Nhận 300 diamond + 80 emerald + 12 netherite + VIP+ rank!</gradient>"
+```
+
+## Commands nâng cao
+
+### Give custom items
+
+```yaml
+commands:
+  - "give {player} diamond_sword{display:{Name:'{\"text\":\"Streak Sword\",\"color\":\"gold\"}'},Enchantments:[{id:sharpness,lvl:5}]} 1"
+```
+
+### Title + Sound
+
+```yaml
+commands:
+  - "give {player} diamond 50"
+  - "title {player} title &6&l🔥 STREAK {streak} NGÀY!"
+  - "title {player} subtitle &eBạn đã nhận phần thưởng"
+  - "playsound entity.player.levelup master {player}"
+```
+
+### Broadcast với format
+
+```yaml
+commands:
+  - "broadcast &6&l━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  - "broadcast &e&l🔥 {player} đã đạt streak {streak} ngày!"
+  - "broadcast &e&lChúc mừng và cảm ơn bạn đã ủng hộ server!"
+  - "broadcast &6&l━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+```
+
+## Message formatting
+
+### Gradient colors
+
+```yaml
+message: "<gradient:green:aqua>Text here</gradient>"
+message: "<gradient:yellow:gold>Text here</gradient>"
+message: "<gradient:red:gold>Text here</gradient>"
+message: "<gradient:purple:pink>Text here</gradient>"
+```
+
+### Multiple lines
+
+```yaml
+message: |
+  <gold><bold>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</bold></gold>
+  <gradient:red:gold><bold>🔥 STREAK {streak} NGÀY!</bold></gradient>
+
+  <green>Bạn đã nạp {streak} ngày liên tiếp!</green>
+  <green>Nhận phần thưởng đặc biệt!</green>
+  <gold><bold>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</bold></gold>
+```
+
+## Best practices
+
+1. **Thưởng tăng dần**: Streak cao hơn → Thưởng nhiều hơn
+
+2. **Milestone hợp lý**: 3, 7, 14, 30, 60, 90 ngày
+
+3. **Emoji 🔥**: Dùng emoji lửa để highlight streak
+
+4. **Broadcast milestone lớn**: Broadcast khi đạt 30, 60, 90 ngày
+
+5. **Give rank**: Thưởng rank cho streak dài (30+ ngày)
+
+## Placeholders trong commands
+
+```yaml
+commands:
+  - "give {player} diamond {streak}"           # Give số diamond = streak
+  - "broadcast {player} đạt streak {streak}"   # Broadcast với streak
+  - "eco give {player} {streak}000"            # Give coins = streak * 1000
+```
+
+**Placeholders:**
+- `{player}` - Tên người chơi
+- `{streak}` - Số ngày streak hiện tại
+- `{best_streak}` - Streak tốt nhất
+
+## Troubleshooting
+
+### Milestone không trigger
+
+<Aside type="caution">
+  **Nguyên nhân**: Streak chưa đạt hoặc đã nhận rồi
+
+  **Giải pháp**:
+  - Kiểm tra streak hiện tại: `/streak`
+  - Verify milestone days đúng
+  - Check database `player_streak_payment` table
+</Aside>
+
+### Message không hiển thị
+
+<Aside type="caution">
+  **Nguyên nhân**: MiniMessage syntax sai
+
+  **Giải pháp**:
+  - Test message tại [MiniMessage Viewer](https://webui.advntr.dev/)
+  - Kiểm tra closing tags đúng
+  - Reload plugin
+</Aside>
+
+## Xem thêm
+
+- [Hệ thống streak](/features/streaks/) - Chi tiết về streak system
+- [Thêm milestones](/guides/adding-milestones/) - Thêm milestone rewards
+- [MiniMessage Format](https://docs.advntr.dev/minimessage/)

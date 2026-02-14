@@ -1,0 +1,210 @@
+---
+title: Xu & Phần thưởng
+description: Cấu hình hệ thống xu và tỷ lệ quy đổi
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+File `coins-config.yml` cấu hình hệ thống xu và tỷ lệ quy đổi từ VNĐ sang coins.
+
+## Vị trí file
+
+```
+plugins/SimpPay/coins-config.yml
+```
+
+## Cấu hình đầy đủ
+
+```yaml
+# SimpPay @ 2025
+# Made by typical.smc, used for SimpMC Network
+# Shared publicly on github.com/SimpMC-Studio/SimpPay
+
+# Plugin sử dụng để cộng xu: PLAYERPOINTS, COINSENGINE
+points-provider: PLAYERPOINTS
+# Tên đơn vị xu trong CoinsEngine (Chỉ dùng cho CoinsEngine)
+coins-engine-currency: coins
+# Lượng xu cộng vào tương ứng với giá trị thẻ cào
+card-to-coins:
+  _50K: 50
+  _30K: 30
+  _300K: 300
+  _200K: 200
+  _100K: 100
+  _10K: 10
+  _500K: 500
+  _1000K: 1000
+  _20K: 20
+# Lệnh chạy tương ứng với giá trị thẻ cào
+# Có hỗ trợ PlaceholderAPI dạng %player_name%
+card-to-commands:
+  _50K:
+  - tell %player_name% Bạn vừa nạp 50k
+  _30K:
+  - tell %player_name% Bạn vừa nạp 30k
+  _300K:
+  - tell %player_name% Bạn vừa nạp 300k
+  _200K:
+  - tell %player_name% Bạn vừa nạp 200k
+  _100K:
+  - tell %player_name% Bạn vừa nạp 100k
+  _10K:
+  - tell %player_name% Bạn vừa nạp 10k
+  _500K:
+  - tell %player_name% Bạn vừa nạp 500k
+  _1000K:
+  - tell %player_name% Bạn vừa nạp 1000k
+  _20K:
+  - tell %player_name% Bạn vừa nạp 20k
+# Công thức tính xu được nhận khi nạp chuyển khoản
+# - Số xu nhận được = Số xu tiêu chuẩn + Số xu được nhận thêm + (Số tiền nạp chuyển khoản / 1000) × Khuyến mãi)
+# Trong đó:
+# - Số xu tiêu chuẩn = (Số tiền nạp chuyển khoản / 1000) x Tỷ lệ tiêu chuẩn cho chuyển khoản
+# - Số xu được nhận thêm = (Số tiền nạp chuyển khoản / 1000) × Tỷ lệ nhận thêm cho chuyển khoản
+#  
+# Lượng xu tiêu chuẩn cộng vào tương ứng với mỗi 1000đ nạp chuyển khoản
+# Mặc định: 1000đ = 1 xu
+base-bank-rate: 2.0
+# Tỷ lệ nhận thêm cho chuyển khoản, tương ứng với mõi 1000đ khi nạp chuyển khoản
+# Mặc định: 1000đ = 0.5 xu
+extra-bank-rate: 0.5
+# Giá trị khuyến mãi thêm
+# VD: 
+# 0: Không có khuyến mãi
+# 0.5: Khuyến mãi 50%, VD: nạp 100k được 150k
+# 1: Khuyến mãi 100%, VD: nạp 100k được 200k
+# 1.5: Khuyến mãi 150%, VD: nạp 100k được 250k
+promo-rate: 0.0
+# Thời gian kết thúc khuyến mãi
+promo-end-time-string: 30/04/1975 11:30
+```
+
+## Coins Providers
+
+SimpPay hỗ trợ 3 loại coins provider:
+
+### PLAYER_POINTS
+
+Sử dụng plugin [PlayerPoints](https://www.spigotmc.org/resources/playerpoints.80745/).
+
+**Ưu điểm:**
+- ✅ Phổ biến, nhiều plugin hỗ trợ
+- ✅ API đơn giản
+- ✅ Lightweight
+
+**Cài đặt:**
+1. Tải PlayerPoints từ SpigotMC
+2. Đặt vào `plugins/` và restart
+3. Cấu hình `coins-provider: "PLAYER_POINTS"`
+
+### COINS_ENGINE
+
+Sử dụng plugin [CoinsEngine](https://www.spigotmc.org/resources/coinsengine.84121/).
+
+**Ưu điểm:**
+- ✅ Hỗ trợ nhiều loại currency
+- ✅ GUI quản lý đẹp
+- ✅ Nhiều tính năng nâng cao
+
+**Cài đặt:**
+1. Tải CoinsEngine từ SpigotMC
+2. Đặt vào `plugins/` và restart
+3. Cấu hình `coins-provider: "COINS_ENGINE"`
+4. Chọn currency trong CoinsEngine config
+
+<Aside type="tip">
+  Khuyến nghị dùng **PlayerPoints** cho hầu hết các server.
+</Aside>
+
+## Công thức tính coins
+
+### Công thức cơ bản
+
+```
+Total coins = (amount / 1000 × baseRate) + (amount / 1000 × extraRate) + (amount / 1000 × promoRate)
+```
+
+## Tỷ lệ quy đổi
+
+### base-card-rate / base-bank-rate
+
+Tỷ lệ cơ bản cho mỗi 1000 VNĐ.
+
+**Ví dụ:**
+
+| Rate | 10,000 VNĐ | 50,000 VNĐ | 100,000 VNĐ |
+|------|------------|------------|-------------|
+| `1` | 10 coins | 50 coins | 100 coins |
+| `2` | 20 coins | 100 coins | 200 coins |
+| `0.5` | 5 coins | 25 coins | 50 coins |
+
+**Khuyến nghị:**
+- Server economy cao: `base-rate: 0.5` hoặc `1`
+- Server economy thấp: `base-rate: 2` hoặc `5`
+
+### extra-card-rate / extra-bank-rate
+
+Tỷ lệ thưởng thêm (%), áp dụng vĩnh viễn.
+
+**Ví dụ:**
+
+```yaml
+base-bank-rate: 1
+extra-bank-rate: 20  # Thưởng thêm 20%
+```
+
+Nạp 100,000 VNĐ:
+- Base: 100 coins
+- Extra: 20 coins (20% của 100)
+- **Total: 120 coins**
+
+**Sử dụng:**
+- Khuyến khích banking: `extra-bank-rate: 20`, `extra-card-rate: 0`
+- Khuyến khích thẻ cào: `extra-card-rate: 15`, `extra-bank-rate: 0`
+- Không phân biệt: Cả hai đều `0`
+
+### promo-rate
+
+Tỷ lệ khuyến mãi (%), chỉ áp dụng trong thời gian khuyến mãi.
+
+**Ví dụ:**
+
+```yaml
+promo-rate: 50  # Thưởng thêm 50% trong event
+end-promo: "31/12/2026 23:59"
+```
+
+Nạp 100,000 VNĐ **trước** 31/12/2026:
+- Base: 100 coins
+- Promo: 50 coins (50% của 100)
+- **Total: 150 coins**
+
+Nạp 100,000 VNĐ **sau** 31/12/2026:
+- Base: 100 coins
+- Promo: 0 coins (hết hạn)
+- **Total: 100 coins**
+
+**Sử dụng:**
+- Event cuối tuần: `promo-rate: 30`, `end-promo: "15/02/2026 23:59"`
+- Event Tết: `promo-rate: 100`, `end-promo: "10/02/2026 23:59"`
+- Không event: `promo-rate: 0`
+
+<Aside type="tip">
+  Dùng PlaceholderAPI placeholder `%simppay_end_promo%` để hiển thị thời gian kết thúc khuyến mãi.
+</Aside>
+
+## Reload cấu hình
+
+Sau khi chỉnh sửa:
+
+```
+/simppayadmin reload
+```
+
+Tỷ lệ mới sẽ áp dụng cho các giao dịch tiếp theo (không ảnh hưởng giao dịch cũ).
+
+## Xem thêm
+
+- [Cấu hình milestones](/features/milestones/) - Thưởng theo mốc nạp
+- [Cấu hình streak](/features/streaks/) - Thưởng nạp liên tiếp
+- [Placeholders](/placeholders/index/) - Hiển thị thông tin coins

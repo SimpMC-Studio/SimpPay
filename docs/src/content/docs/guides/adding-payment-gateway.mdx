@@ -1,0 +1,330 @@
+---
+title: Thêm cổng thanh toán
+description: Hướng dẫn developer thêm payment gateway mới
+---
+
+import { Steps, FileTree, Aside } from '@astrojs/starlight/components';
+
+Hướng dẫn developer thêm payment gateway mới vào SimpPay.
+
+<Aside type="note">
+  Hướng dẫn này dành cho developers có kiến thức Java và Bukkit API.
+</Aside>
+
+## Kiến trúc handler system
+
+SimpPay sử dụng handler pattern với dynamic loading:
+
+1. **Enum registry** - `CardAPI` / `BankAPI` / `CoinsAPI`
+2. **Handler interface** - `PaymentHandler`
+3. **Config class** - Extends base config
+4. **Handler implementation** - Implements `PaymentHandler`
+
+## Thêm card gateway
+
+<Steps>
+
+1. **Thêm enum entry**
+
+   `src/main/java/me/typical/simppay/handler/HandlerRegistry.java`:
+
+   ```java
+   public enum CardAPI {
+       THESIEUTOC("TheSieuToc", TSTHandler.class),
+       CARD2K("Card2K", Card2KHandler.class),
+       GACHTHE1S("Gachthe1s", GT1SHandler.class),
+       THESIEURE("TheSieuRe", TSRHandler.class),
+       DOITHE1S("Doithe1s", DT1SHandler.class),
+
+       // Thêm gateway mới
+       NEW_GATEWAY("New Gateway", NewGatewayHandler.class);
+
+       private final String displayName;
+       private final Class<? extends PaymentHandler> handlerClass;
+
+       CardAPI(String displayName, Class<? extends PaymentHandler> handlerClass) {
+           this.displayName = displayName;
+           this.handlerClass = handlerClass;
+       }
+   }
+   ```
+
+2. **Tạo config class**
+
+   `src/main/java/me/typical/simppay/config/types/card/NewGatewayConfig.java`:
+
+   ```java
+   package me.typical.simppay.config.types.card;
+
+   import de.exlll.configlib.Configuration;
+   import lombok.Data;
+   import me.typical.simppay.config.annotations.Folder;
+
+   import java.util.List;
+
+   @Data
+   @Configuration
+   @Folder("card")
+   public class NewGatewayConfig {
+
+       private boolean enabled = true;
+
+       // API credentials
+       private String apiKey = "your_api_key_here";
+       private String secretKey = "your_secret_key_here";
+
+       // Timeout settings
+       private int timeout = 300;
+       private int interval = 10;
+
+       // Supported card types
+       private List<String> supportedCardTypes = List.of(
+           "VIETTEL",
+           "MOBIFONE",
+           "VINAPHONE"
+       );
+
+       // Supported amounts
+       private List<Integer> supportedAmounts = List.of(
+           10000, 20000, 50000, 100000,
+           200000, 500000, 1000000
+       );
+   }
+   ```
+
+3. **Register config**
+
+   `src/main/java/me/typical/simppay/config/ConfigManager.java`:
+
+   ```java
+   private final List<Class<?>> configClasses = List.of(
+       MainConfig.class,
+       MessageConfig.class,
+       // ... other configs ...
+       NewGatewayConfig.class  // Add here
+   );
+   ```
+
+4. **Tạo handler class**
+
+   `src/main/java/me/typical/simppay/handler/card/newgateway/NewGatewayHandler.java`:
+
+   ```java
+   package me.typical.simppay.handler.card.newgateway;
+
+   import me.typical.simppay.config.ConfigManager;
+   import me.typical.simppay.config.types.card.NewGatewayConfig;
+   import me.typical.simppay.handler.HandlerRegistry.CardAPI;
+   import me.typical.simppay.handler.PaymentHandler;
+   import me.typical.simppay.model.PaymentStatus;
+   import okhttp3.*;
+   import org.bukkit.entity.Player;
+
+   import java.io.IOException;
+
+   public class NewGatewayHandler implements PaymentHandler {
+
+       private final OkHttpClient client = new OkHttpClient();
+       private NewGatewayConfig config;
+
+       @Override
+       public void setup() {
+           this.config = ConfigManager.getInstance()
+               .getConfig(NewGatewayConfig.class);
+       }
+
+       @Override
+       public PaymentStatus send(Player player, String cardType,
+                                 String serial, String pin,
+                                 int amount, String orderId) {
+
+           if (!config.isEnabled()) {
+               return PaymentStatus.FAILED;
+           }
+
+           try {
+               // Build request
+               RequestBody body = new FormBody.Builder()
+                   .add("api_key", config.getApiKey())
+                   .add("card_type", cardType)
+                   .add("serial", serial)
+                   .add("pin", pin)
+                   .add("amount", String.valueOf(amount))
+                   .add("order_id", orderId)
+                   .build();
+
+               Request request = new Request.Builder()
+                   .url("https://api.newgateway.com/card/charge")
+                   .post(body)
+                   .build();
+
+               // Execute request
+               try (Response response = client.newCall(request).execute()) {
+                   if (!response.isSuccessful()) {
+                       return PaymentStatus.FAILED;
+                   }
+
+                   // Parse response
+                   String responseBody = response.body().string();
+                   // TODO: Parse JSON and return appropriate status
+
+                   return PaymentStatus.PENDING;
+               }
+
+           } catch (IOException e) {
+               e.printStackTrace();
+               return PaymentStatus.FAILED;
+           }
+       }
+
+       @Override
+       public PaymentStatus check(String orderId) {
+           try {
+               Request request = new Request.Builder()
+                   .url("https://api.newgateway.com/card/check?order_id=" + orderId)
+                   .addHeader("Authorization", "Bearer " + config.getApiKey())
+                   .get()
+                   .build();
+
+               try (Response response = client.newCall(request).execute()) {
+                   if (!response.isSuccessful()) {
+                       return PaymentStatus.PENDING;
+                   }
+
+                   String responseBody = response.body().string();
+                   // TODO: Parse JSON and return status
+
+                   return PaymentStatus.PENDING;
+               }
+
+           } catch (IOException e) {
+               e.printStackTrace();
+               return PaymentStatus.PENDING;
+           }
+       }
+
+       @Override
+       public CardAPI getAPI() {
+           return CardAPI.NEW_GATEWAY;
+       }
+
+       @Override
+       public Object getConfig() {
+           return config;
+       }
+   }
+   ```
+
+5. **Build và test**
+
+   ```bash
+   ./gradlew build
+   ```
+
+   Copy JAR vào server và test:
+   ```
+   /napthe
+   ```
+
+</Steps>
+
+## Thêm banking gateway
+
+Tương tự card gateway nhưng:
+
+1. Thêm vào `BankAPI` enum
+2. Handler implement `send(Player, int, String)` thay vì `send(Player, String, String, String, int, String)`
+3. Config có thể khác (account number, bank code, etc.)
+
+## File structure
+
+<FileTree>
+
+- src/main/java/me/typical/simppay/
+  - handler/
+    - HandlerRegistry.java (Add enum entry)
+    - card/
+      - newgateway/
+        - NewGatewayHandler.java
+  - config/
+    - ConfigManager.java (Register config)
+    - types/
+      - card/
+        - NewGatewayConfig.java
+
+</FileTree>
+
+## PaymentHandler interface
+
+```java
+public interface PaymentHandler {
+
+    /**
+     * Setup handler (load config, init HTTP client, etc.)
+     */
+    void setup();
+
+    /**
+     * Send card payment request
+     */
+    PaymentStatus send(Player player, String cardType,
+                      String serial, String pin,
+                      int amount, String orderId);
+
+    /**
+     * Check payment status
+     */
+    PaymentStatus check(String orderId);
+
+    /**
+     * Get API enum
+     */
+    Object getAPI();
+
+    /**
+     * Get config instance
+     */
+    Object getConfig();
+}
+```
+
+## PaymentStatus enum
+
+```java
+public enum PaymentStatus {
+    PENDING,        // Đang xử lý
+    SUCCESS,        // Thành công
+    FAILED,         // Thất bại
+    TIMEOUT,        // Hết thời gian
+    WRONG_AMOUNT,   // Sai mệnh giá
+    USED,           // Thẻ đã dùng
+    INVALID         // Thẻ không hợp lệ
+}
+```
+
+## Best practices
+
+1. **Error handling**: Catch tất cả exceptions và return appropriate status
+
+2. **Logging**: Dùng `MessageUtil.debug()` để log API requests/responses
+
+3. **Timeout**: Respect timeout settings từ config
+
+4. **Thread safety**: Handler có thể được gọi từ nhiều threads
+
+5. **Config reload**: Handler được re-initialized khi reload config
+
+## Testing
+
+```java
+// Test trong handler
+MessageUtil.debug("NewGatewayHandler: Sending card " + cardType + " " + amount);
+MessageUtil.debug("NewGatewayHandler: API Response: " + responseBody);
+MessageUtil.debug("NewGatewayHandler: Status: " + status);
+```
+
+## Xem thêm
+
+- [Handler Registry](https://github.com/typical-mc/SimpPay/blob/main/src/main/java/me/typical/simppay/handler/HandlerRegistry.java)
+- [Existing Handlers](https://github.com/typical-mc/SimpPay/tree/main/src/main/java/me/typical/simppay/handler)
+- [OkHttp Documentation](https://square.github.io/okhttp/)

@@ -1,0 +1,283 @@
+---
+title: Thêm mốc nạp mới
+description: Hướng dẫn thêm milestone rewards mới
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Hướng dẫn thêm milestone rewards mới cho người chơi hoặc server.
+
+## Thêm Player Milestone
+
+<Steps>
+
+1. **Mở file config**
+
+   `plugins/SimpPay/milestones/milestones-player-config.yml`
+
+2. **Chọn kỳ milestone**
+
+   Chọn một trong 5 kỳ: `all`, `daily`, `weekly`, `monthly`, `yearly`
+
+3. **Thêm milestone entry**
+
+   ```yaml
+   monthly:
+     # ... existing milestones ...
+
+     # Milestone mới
+     - name: "Nạp 2 triệu trong tháng"
+       amount: 2000000
+       commands:
+         - "give {player} diamond 100"
+         - "give {player} emerald 25"
+         - "give {player} netherite_ingot 3"
+         - "broadcast &6{player} đã nạp 2 triệu trong tháng!"
+       bossbar:
+         enabled: true
+         title: "<gradient:red:gold>Mốc tháng: 2 triệu</gradient>"
+         color: "RED"
+         style: "PROGRESS"
+   ```
+
+4. **Reload plugin**
+
+   ```
+   /simppayadmin reload
+   ```
+
+5. **Test milestone**
+
+   ```
+   /simppayadmin fakebank <player> 2000000
+   ```
+
+</Steps>
+
+## Thêm Server Milestone
+
+<Steps>
+
+1. **Mở file config**
+
+   `plugins/SimpPay/milestones/milestones-server-config.yml`
+
+2. **Thêm milestone entry**
+
+   ```yaml
+   all:
+     # ... existing milestones ...
+
+     # Milestone mới
+     - name: "Server đạt 100 triệu"
+       amount: 100000000
+       commands:
+         - "broadcast &6&l[SERVER MILESTONE] &eServer đã đạt 100 triệu!"
+         - "broadcast &6&lTất cả người chơi nhận thưởng!"
+         - "give @a diamond 100"
+         - "give @a emerald 25"
+         - "give @a netherite_ingot 5"
+       bossbar:
+         enabled: true
+         title: "<gradient:gold:red>Server: 100 triệu</gradient>"
+         color: "PURPLE"
+         style: "PROGRESS"
+   ```
+
+3. **Reload và test**
+
+   ```
+   /simppayadmin reload
+   ```
+
+</Steps>
+
+## Cấu hình BossBar
+
+### Màu sắc
+
+```yaml
+color: "YELLOW"   # Vàng - Milestone thường
+color: "GREEN"    # Xanh lá - Milestone dễ
+color: "BLUE"     # Xanh dương - Milestone ngày
+color: "RED"      # Đỏ - Milestone khó
+color: "PINK"     # Hồng - Milestone tháng
+color: "PURPLE"   # Tím - Milestone server
+color: "WHITE"    # Trắng - Milestone đặc biệt
+```
+
+### Kiểu thanh
+
+```yaml
+style: "PROGRESS"      # Thanh liền (smooth)
+style: "NOTCHED_6"     # 6 đoạn
+style: "NOTCHED_10"    # 10 đoạn
+style: "NOTCHED_12"    # 12 đoạn
+style: "NOTCHED_20"    # 20 đoạn
+```
+
+**Khuyến nghị:**
+- `PROGRESS` - Milestone lớn (500k+)
+- `NOTCHED_10` - Milestone ngày/tuần
+- `NOTCHED_20` - Milestone nhỏ (< 100k)
+
+## Commands nâng cao
+
+### Give items với NBT
+
+```yaml
+commands:
+  - "give {player} diamond_sword{Enchantments:[{id:sharpness,lvl:5}]} 1"
+  - "give {player} diamond_helmet{Enchantments:[{id:protection,lvl:4}]} 1"
+```
+
+### Give rank
+
+```yaml
+commands:
+  - "lp user {player} parent add vip"
+  - "lp user {player} permission set vip.fly"
+```
+
+### Execute multiple commands
+
+```yaml
+commands:
+  - "give {player} diamond 50"
+  - "eco give {player} 10000"
+  - "lp user {player} permission set milestone.2m"
+  - "broadcast &6{player} đã đạt mốc 2 triệu!"
+  - "title {player} title &6&lCHÚC MỪNG!"
+  - "title {player} subtitle &eBạn đã đạt mốc 2 triệu"
+```
+
+## Best practices
+
+1. **Sắp xếp tăng dần**: Milestone nhỏ trước, lớn sau
+
+2. **Tên unique**: Mỗi milestone phải có tên unique trong cùng kỳ
+
+3. **Thưởng hợp lý**: Thưởng tăng dần theo mốc
+
+4. **Test trước deploy**: Dùng fake payment để test
+
+5. **Backup config**: Backup trước khi sửa
+
+## Ví dụ milestone set hoàn chỉnh
+
+### Daily milestones (khuyến khích nạp hàng ngày)
+
+```yaml
+daily:
+  - name: "Nạp 20k trong ngày"
+    amount: 20000
+    commands:
+      - "give {player} diamond 2"
+    bossbar:
+      enabled: true
+      title: "Mốc ngày: 20k"
+      color: "GREEN"
+      style: "NOTCHED_10"
+
+  - name: "Nạp 50k trong ngày"
+    amount: 50000
+    commands:
+      - "give {player} diamond 5"
+    bossbar:
+      enabled: true
+      title: "Mốc ngày: 50k"
+      color: "BLUE"
+      style: "NOTCHED_10"
+
+  - name: "Nạp 100k trong ngày"
+    amount: 100000
+    commands:
+      - "give {player} diamond 12"
+      - "give {player} emerald 2"
+    bossbar:
+      enabled: true
+      title: "Mốc ngày: 100k"
+      color: "YELLOW"
+      style: "NOTCHED_10"
+```
+
+### Monthly milestones (mục tiêu dài hạn)
+
+```yaml
+monthly:
+  - name: "Nạp 200k trong tháng"
+    amount: 200000
+    commands:
+      - "give {player} diamond 15"
+    bossbar:
+      enabled: true
+      title: "Mốc tháng: 200k"
+      color: "PINK"
+      style: "PROGRESS"
+
+  - name: "Nạp 500k trong tháng"
+    amount: 500000
+    commands:
+      - "give {player} diamond 40"
+      - "give {player} emerald 8"
+    bossbar:
+      enabled: true
+      title: "Mốc tháng: 500k"
+      color: "PINK"
+      style: "PROGRESS"
+
+  - name: "Nạp 1 triệu trong tháng"
+    amount: 1000000
+    commands:
+      - "give {player} diamond 90"
+      - "give {player} emerald 20"
+      - "give {player} netherite_ingot 2"
+    bossbar:
+      enabled: true
+      title: "Mốc tháng: 1 triệu"
+      color: "RED"
+      style: "PROGRESS"
+
+  - name: "Nạp 2 triệu trong tháng"
+    amount: 2000000
+    commands:
+      - "give {player} diamond 200"
+      - "give {player} emerald 50"
+      - "give {player} netherite_ingot 5"
+      - "lp user {player} parent add vip"
+    bossbar:
+      enabled: true
+      title: "Mốc tháng: 2 triệu"
+      color: "PURPLE"
+      style: "PROGRESS"
+```
+
+## Troubleshooting
+
+### Milestone không trigger
+
+<Aside type="caution">
+  **Nguyên nhân**: Tên milestone trùng hoặc amount sai
+
+  **Giải pháp**:
+  - Kiểm tra `name` unique trong cùng kỳ
+  - Verify `amount` là số nguyên (không có dấu phẩy)
+  - Bật debug mode để xem logs
+</Aside>
+
+### BossBar không hiển thị
+
+<Aside type="caution">
+  **Nguyên nhân**: `bossbar.enabled: false` hoặc syntax sai
+
+  **Giải pháp**:
+  - Set `enabled: true`
+  - Kiểm tra `color` và `style` hợp lệ
+  - Reload plugin
+</Aside>
+
+## Xem thêm
+
+- [Hệ thống milestone](/features/milestones/) - Chi tiết về milestone system
+- [Thêm streak rewards](/guides/adding-streak-rewards/) - Thêm streak rewards
+- [Cấu hình tin nhắn](/configuration/messages/) - Customize messages

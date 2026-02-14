@@ -1,0 +1,186 @@
+---
+title: Lệnh admin
+description: Danh sách lệnh dành cho admin
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Các lệnh admin để quản lý SimpPay.
+
+## Lệnh quản lý
+
+### /simppayadmin reload
+
+Reload tất cả config files.
+
+| | |
+|---|---|
+| **Cú pháp** | `/simppayadmin reload` |
+| **Permission** | `simppay.admin.reload` |
+| **Mô tả** | Reload configs và handler registry |
+
+**Ví dụ:**
+```
+/simppayadmin reload
+```
+
+**Reload:**
+- Tất cả config files
+- Handler registry (payment gateways)
+- Cache data
+- Không restart plugin
+
+### /simppayadmin lichsu
+
+Xem lịch sử nạp của người chơi.
+
+| | |
+|---|---|
+| **Cú pháp** | `/simppayadmin lichsu [player]` |
+| **Permission** | `simppay.admin.viewhistory` |
+| **Mô tả** | Xem lịch sử giao dịch của bất kỳ người chơi nào |
+
+**Tham số:**
+- `[player]` - Tên người chơi (optional)
+
+**Ví dụ:**
+```
+/simppayadmin lichsu player123
+```
+
+## Lệnh testing
+
+### /simppayadmin fakecard
+
+Tạo fake card payment để test.
+
+| | |
+|---|---|
+| **Cú pháp** | `/simppayadmin fakecard <player> <amount>` |
+| **Permission** | `simppay.admin.fakecard` |
+| **Mô tả** | Simulate card payment thành công |
+
+**Tham số:**
+- `<player>` - Tên người chơi
+- `<amount>` - Số tiền (VNĐ)
+
+**Ví dụ:**
+```
+/simppayadmin fakecard player123 50000
+```
+
+**Sử dụng:**
+- Test coins calculation
+- Test milestone triggers
+- Test streak updates
+- Test database persistence
+
+### /simppayadmin fakebank
+
+Tạo fake bank payment để test.
+
+| | |
+|---|---|
+| **Cú pháp** | `/simppayadmin fakebank <player> <amount>` |
+| **Permission** | `simppay.admin.fakebank` |
+| **Mô tả** | Simulate bank payment thành công |
+
+**Tham số:**
+- `<player>` - Tên người chơi
+- `<amount>` - Số tiền (VNĐ)
+
+**Ví dụ:**
+```
+/simppayadmin fakebank player123 100000
+```
+
+## Permissions
+
+| Permission | Mô tả | Mặc định |
+|------------|-------|----------|
+| `simppay.admin.reload` | Reload configs | `op` |
+| `simppay.admin.viewhistory` | Xem lịch sử người khác | `op` |
+| `simppay.admin.fakecard` | Tạo fake card payment | `op` |
+| `simppay.admin.fakebank` | Tạo fake bank payment | `op` |
+| `simppay.admin.*` | Tất cả admin permissions | `op` |
+
+## Cấu hình permissions
+
+### LuckPerms
+
+```bash
+# Give admin permissions cho group admin
+lp group admin permission set simppay.admin.* true
+
+# Hoặc give từng permission
+lp group admin permission set simppay.admin.reload true
+lp group admin permission set simppay.admin.viewhistory true
+lp group admin permission set simppay.admin.fakecard true
+lp group admin permission set simppay.admin.fakebank true
+```
+
+### PermissionsEx
+
+```yaml
+groups:
+  admin:
+    permissions:
+      - simppay.admin.*
+```
+
+## Testing workflow
+
+<Steps>
+
+1. **Bật debug mode**
+
+   `main-config.yml`:
+   ```yaml
+   debug: true
+   ```
+
+2. **Reload plugin**
+
+   ```
+   /simppayadmin reload
+   ```
+
+3. **Test fake payment**
+
+   ```
+   /simppayadmin fakebank player123 50000
+   ```
+
+4. **Kiểm tra console**
+
+   Xem debug logs để verify:
+   - Coins calculation
+   - Milestone checks
+   - Streak updates
+   - Database writes
+
+5. **Verify kết quả**
+
+   ```
+   /points check player123
+   /simppayadmin lichsu player123
+   ```
+
+</Steps>
+
+## Best practices
+
+1. **Test trước khi deploy**: Dùng fake payments để test configs
+
+2. **Backup trước reload**: Backup configs trước khi reload
+
+3. **Monitor console**: Xem console logs sau reload để catch errors
+
+4. **Test với số tiền nhỏ**: Dùng 10k-20k cho fake payments
+
+5. **Clean test data**: Xóa test data khỏi database sau khi test xong
+
+## Xem thêm
+
+- [Lệnh người chơi](/commands/player-commands/) - Lệnh dành cho người chơi
+- [Cấu hình chính](/configuration/main-config/) - Debug mode

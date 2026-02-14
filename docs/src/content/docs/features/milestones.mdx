@@ -1,0 +1,394 @@
+---
+title: Hệ thống mốc nạp
+description: Cấu hình milestone rewards cho người chơi và server
+---
+
+import { Tabs, TabItem, Aside, Steps } from '@astrojs/starlight/components';
+
+Hệ thống milestone thưởng người chơi khi đạt mốc nạp tiền nhất định. Hỗ trợ milestone cá nhân và server-wide.
+
+## Loại milestone
+
+<Tabs>
+  <TabItem label="Player Milestone">
+    **Milestone cá nhân** - Thưởng cho từng người chơi khi đạt mốc
+
+    - Mỗi người chơi track riêng
+    - Thưởng độc lập
+    - Có thể đạt nhiều lần (theo kỳ)
+  </TabItem>
+
+  <TabItem label="Server Milestone">
+    **Milestone server** - Thưởng cho toàn server khi tổng nạp đạt mốc
+
+    - Track tổng nạp của tất cả người chơi
+    - Thưởng cho tất cả online players
+    - Tạo sự kiện cộng đồng
+  </TabItem>
+</Tabs>
+
+## Kỳ milestone
+
+Milestone có 5 loại kỳ:
+
+| Kỳ | Mô tả | Reset |
+|-----|-------|-------|
+| `ALL` | Tổng nạp từ trước đến nay | Không bao giờ |
+| `DAILY` | Tổng nạp trong ngày | 00:00 mỗi ngày |
+| `WEEKLY` | Tổng nạp trong tuần | 00:00 Thứ 2 |
+| `MONTHLY` | Tổng nạp trong tháng | 00:00 ngày 1 |
+| `YEARLY` | Tổng nạp trong năm | 00:00 ngày 1/1 |
+
+## Cấu hình Player Milestone
+
+File: `plugins/SimpPay/milestones/milestones-player-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Player Milestones Configuration
+
+# ALL - Tổng nạp từ trước đến nay
+all:
+  - name: "Nạp 100k lần đầu"
+    amount: 100000
+    commands:
+      - "give {player} diamond 5"
+      - "broadcast &a{player} đã nạp 100k lần đầu!"
+    bossbar:
+      enabled: true
+      title: "<gradient:green:aqua>Mốc nạp: 100k</gradient>"
+      color: "GREEN"
+      style: "PROGRESS"
+
+  - name: "Nạp 500k tổng"
+    amount: 500000
+    commands:
+      - "give {player} diamond 20"
+      - "give {player} emerald 5"
+    bossbar:
+      enabled: true
+      title: "<gradient:yellow:gold>Mốc nạp: 500k</gradient>"
+      color: "YELLOW"
+      style: "PROGRESS"
+
+  - name: "Nạp 1 triệu tổng"
+    amount: 1000000
+    commands:
+      - "give {player} diamond 50"
+      - "give {player} emerald 10"
+      - "give {player} netherite_ingot 1"
+    bossbar:
+      enabled: true
+      title: "<gradient:red:gold>Mốc nạp: 1 triệu</gradient>"
+      color: "RED"
+      style: "PROGRESS"
+
+# DAILY - Tổng nạp trong ngày
+daily:
+  - name: "Nạp 50k trong ngày"
+    amount: 50000
+    commands:
+      - "give {player} diamond 3"
+    bossbar:
+      enabled: true
+      title: "Mốc ngày: 50k"
+      color: "BLUE"
+      style: "NOTCHED_10"
+
+  - name: "Nạp 200k trong ngày"
+    amount: 200000
+    commands:
+      - "give {player} diamond 15"
+      - "give {player} emerald 3"
+    bossbar:
+      enabled: true
+      title: "Mốc ngày: 200k"
+      color: "PURPLE"
+      style: "NOTCHED_10"
+
+# WEEKLY - Tổng nạp trong tuần
+weekly:
+  - name: "Nạp 200k trong tuần"
+    amount: 200000
+    commands:
+      - "give {player} diamond 10"
+    bossbar:
+      enabled: true
+      title: "Mốc tuần: 200k"
+      color: "GREEN"
+      style: "NOTCHED_20"
+
+  - name: "Nạp 500k trong tuần"
+    amount: 500000
+    commands:
+      - "give {player} diamond 30"
+      - "give {player} emerald 5"
+    bossbar:
+      enabled: true
+      title: "Mốc tuần: 500k"
+      color: "YELLOW"
+      style: "NOTCHED_20"
+
+# MONTHLY - Tổng nạp trong tháng
+monthly:
+  - name: "Nạp 500k trong tháng"
+    amount: 500000
+    commands:
+      - "give {player} diamond 25"
+    bossbar:
+      enabled: true
+      title: "Mốc tháng: 500k"
+      color: "PINK"
+      style: "PROGRESS"
+
+  - name: "Nạp 1 triệu trong tháng"
+    amount: 1000000
+    commands:
+      - "give {player} diamond 60"
+      - "give {player} emerald 10"
+      - "give {player} netherite_ingot 2"
+    bossbar:
+      enabled: true
+      title: "Mốc tháng: 1 triệu"
+      color: "RED"
+      style: "PROGRESS"
+
+# YEARLY - Tổng nạp trong năm
+yearly:
+  - name: "Nạp 5 triệu trong năm"
+    amount: 5000000
+    commands:
+      - "give {player} diamond 200"
+      - "give {player} emerald 50"
+      - "give {player} netherite_ingot 10"
+    bossbar:
+      enabled: true
+      title: "Mốc năm: 5 triệu"
+      color: "PURPLE"
+      style: "PROGRESS"
+```
+
+## Cấu hình Server Milestone
+
+File: `plugins/SimpPay/milestones/milestones-server-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Server Milestones Configuration
+
+# ALL - Tổng nạp server từ trước đến nay
+all:
+  - name: "Server đạt 10 triệu"
+    amount: 10000000
+    commands:
+      - "broadcast &6&l[SERVER MILESTONE] &eServer đã đạt 10 triệu nạp!"
+      - "give @a diamond 10"
+    bossbar:
+      enabled: true
+      title: "<gradient:gold:yellow>Server: 10 triệu</gradient>"
+      color: "YELLOW"
+      style: "PROGRESS"
+
+  - name: "Server đạt 50 triệu"
+    amount: 50000000
+    commands:
+      - "broadcast &6&l[SERVER MILESTONE] &eServer đã đạt 50 triệu nạp!"
+      - "give @a diamond 50"
+      - "give @a emerald 10"
+    bossbar:
+      enabled: true
+      title: "<gradient:gold:red>Server: 50 triệu</gradient>"
+      color: "RED"
+      style: "PROGRESS"
+
+# MONTHLY - Tổng nạp server trong tháng
+monthly:
+  - name: "Server đạt 5 triệu tháng này"
+    amount: 5000000
+    commands:
+      - "broadcast &6&l[MONTHLY GOAL] &eServer đạt 5 triệu tháng này!"
+      - "give @a diamond 20"
+    bossbar:
+      enabled: true
+      title: "Server tháng: 5 triệu"
+      color: "PINK"
+      style: "NOTCHED_12"
+```
+
+## Chi tiết cấu hình
+
+### name
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: Tên milestone (dùng để track completion)
+
+<Aside type="caution">
+  **Quan trọng**: `name` phải unique trong cùng một kỳ. Nếu đổi `name`, milestone sẽ được coi là mới và người chơi có thể nhận thưởng lại.
+</Aside>
+
+### amount
+
+- **Kiểu**: `integer` (VNĐ)
+- **Bắt buộc**: Có
+- **Mô tả**: Số tiền cần đạt để hoàn thành milestone
+
+### commands
+
+- **Kiểu**: `list<string>`
+- **Bắt buộc**: Có
+- **Mô tả**: Lệnh thực thi khi hoàn thành milestone
+
+**Placeholders:**
+- `{player}` - Tên người chơi
+- `{amount}` - Số tiền milestone
+- `{milestone_name}` - Tên milestone
+
+**Ví dụ:**
+```yaml
+commands:
+  - "give {player} diamond 10"
+  - "eco give {player} 1000"
+  - "lp user {player} permission set vip.rank"
+  - "broadcast &a{player} đã đạt mốc {milestone_name}!"
+```
+
+### bossbar
+
+Cấu hình BossBar hiển thị tiến độ milestone.
+
+#### bossbar.enabled
+
+- **Kiểu**: `boolean`
+- **Mặc định**: `true`
+- **Mô tả**: Bật/tắt BossBar cho milestone này
+
+#### bossbar.title
+
+- **Kiểu**: `string`
+- **Mô tả**: Tiêu đề BossBar (hỗ trợ MiniMessage)
+
+**Ví dụ:**
+```yaml
+title: "<gradient:green:aqua>Mốc nạp: 100k</gradient>"
+title: "&6&lMốc tháng: 500k"
+title: "Tiến độ: {current}/{target}"
+```
+
+#### bossbar.color
+
+- **Kiểu**: `string`
+- **Mặc định**: `"GREEN"`
+- **Mô tả**: Màu BossBar
+
+**Giá trị hợp lệ:**
+- `YELLOW` - Vàng
+- `GREEN` - Xanh lá
+- `BLUE` - Xanh dương
+- `RED` - Đỏ
+- `PINK` - Hồng
+- `PURPLE` - Tím
+- `WHITE` - Trắng
+
+#### bossbar.style
+
+- **Kiểu**: `string`
+- **Mặc định**: `"PROGRESS"`
+- **Mô tả**: Kiểu BossBar
+
+**Giá trị hợp lệ:**
+- `PROGRESS` - Thanh liền
+- `NOTCHED_6` - 6 đoạn
+- `NOTCHED_10` - 10 đoạn
+- `NOTCHED_12` - 12 đoạn
+- `NOTCHED_20` - 20 đoạn
+
+## Retroactive Checking
+
+SimpPay kiểm tra **tất cả** milestone chưa hoàn thành mỗi khi có thanh toán thành công.
+
+**Ví dụ:**
+1. Player có tổng nạp 80k
+2. Nạp thêm 50k → Tổng 130k
+3. Plugin check:
+   - Milestone 100k? ✅ Chưa hoàn thành, tổng >= 100k → Award
+   - Milestone 500k? ❌ Tổng < 500k → Skip
+
+<Aside type="tip">
+  Nhờ retroactive checking, bạn có thể thêm milestone mới bất kỳ lúc nào. Người chơi đã đạt mốc sẽ tự động nhận thưởng lần nạp tiếp theo.
+</Aside>
+
+## BossBar Display
+
+BossBar hiển thị tiến độ đến milestone tiếp theo:
+
+```
+[████████░░░░░░░░░░░░] 40%
+Mốc nạp: 100k (40,000/100,000)
+```
+
+- Tự động cập nhật sau mỗi thanh toán
+- Chỉ hiển thị milestone gần nhất chưa hoàn thành
+- Tự động ẩn khi hoàn thành tất cả milestone
+
+## Testing
+
+<Steps>
+
+1. **Tạo milestone test**
+
+   ```yaml
+   daily:
+     - name: "Test 10k"
+       amount: 10000
+       commands:
+         - "give {player} diamond 1"
+       bossbar:
+         enabled: true
+         title: "Test: 10k"
+         color: "GREEN"
+         style: "PROGRESS"
+   ```
+
+2. **Reload config**
+
+   ```
+   /simppayadmin reload
+   ```
+
+3. **Fake payment**
+
+   ```
+   /simppayadmin fakebank <player> 10000
+   ```
+
+4. **Kiểm tra**
+
+   - BossBar hiển thị đúng
+   - Commands được thực thi
+   - Message hiển thị
+   - Database có record trong `milestone_completion`
+
+</Steps>
+
+## Best practices
+
+1. **Sắp xếp theo thứ tự tăng dần**: Milestone nhỏ trước, lớn sau
+
+2. **Tên milestone rõ ràng**: Dùng tên mô tả rõ ràng để dễ quản lý
+
+3. **Thưởng hợp lý**: Thưởng tăng dần theo mốc
+
+4. **Dùng BossBar**: Giúp người chơi thấy tiến độ
+
+5. **Test trước khi deploy**: Dùng fake payment để test
+
+## Xem thêm
+
+- [Streak rewards](/features/streaks/) - Thưởng nạp liên tiếp
+- [Nạp lần đầu](/features/naplandau/) - Thưởng nạp lần đầu
+- [Placeholders](/placeholders/index/) - Hiển thị tiến độ milestone

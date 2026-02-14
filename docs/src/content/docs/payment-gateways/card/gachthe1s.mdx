@@ -1,0 +1,63 @@
+---
+title: Gachthe1s
+description: Hướng dẫn cấu hình cổng thẻ cào Gachthe1s
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Gachthe1s là cổng nạp thẻ cào với xử lý nhanh và hỗ trợ tốt.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. Truy cập [https://gachthe1s.com](https://gachthe1s.com)
+2. Đăng ký tài khoản đại lý
+3. Nạp tiền tối thiểu 100k VNĐ
+4. Lấy Partner ID và Partner Key từ dashboard
+
+</Steps>
+
+## Cấu hình plugin
+
+File: `plugins/SimpPay/card/gachthe1s-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+enabled: true
+
+partner-id: "12345678"
+partner-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+timeout: 300
+interval: 10
+
+supported-card-types:
+  - VIETTEL
+  - MOBIFONE
+  - VINAPHONE
+
+supported-amounts:
+  - 10000
+  - 20000
+  - 50000
+  - 100000
+  - 200000
+  - 500000
+  - 1000000
+```
+
+## Tỷ lệ chiết khấu
+
+| Loại thẻ | Chiết khấu |
+|----------|------------|
+| Viettel | ~25% |
+| Mobifone | ~25% |
+| Vinaphone | ~25% |
+
+## Xem thêm
+
+- [TheSieuToc](/payment-gateways/card/thesieutoc/) - Cổng khuyến nghị
+- [Card2K](/payment-gateways/card/card2k/) - Alternative

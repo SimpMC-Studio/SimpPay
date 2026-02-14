@@ -1,0 +1,67 @@
+---
+title: TheSieuRe
+description: Hướng dẫn cấu hình cổng thẻ cào TheSieuRe
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+TheSieuRe là cổng nạp thẻ cào với phí thấp, phù hợp cho server nhỏ.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. Truy cập [https://thesieure.com](https://thesieure.com)
+2. Đăng ký tài khoản đại lý
+3. Nạp tiền tối thiểu 100k VNĐ
+4. Lấy Partner ID và Partner Key từ API settings
+
+</Steps>
+
+## Cấu hình plugin
+
+File: `plugins/SimpPay/card/thesieure-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+enabled: true
+
+partner-id: "12345678"
+partner-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+timeout: 300
+interval: 10
+
+supported-card-types:
+  - VIETTEL
+  - MOBIFONE
+  - VINAPHONE
+
+supported-amounts:
+  - 10000
+  - 20000
+  - 50000
+  - 100000
+  - 200000
+  - 500000
+  - 1000000
+```
+
+## Tỷ lệ chiết khấu
+
+| Loại thẻ | Chiết khấu |
+|----------|------------|
+| Viettel | ~26% |
+| Mobifone | ~26% |
+| Vinaphone | ~26% |
+
+<Aside type="note">
+  TheSieuRe có phí cao hơn các cổng khác nhưng phù hợp cho server nhỏ do không yêu cầu nạp tiền nhiều.
+</Aside>
+
+## Xem thêm
+
+- [TheSieuToc](/payment-gateways/card/thesieutoc/) - Tỷ lệ tốt hơn
+- [Card2K](/payment-gateways/card/card2k/) - Alternative

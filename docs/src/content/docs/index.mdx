@@ -1,0 +1,63 @@
+---
+title: SimpPay Documentation
+description: Hệ thống thanh toán tự động cho Minecraft server Việt Nam
+template: splash
+hero:
+  tagline: Plugin thanh toán tự động hỗ trợ thẻ cào và QR banking cho Paper 1.13-1.21.4+
+  actions:
+    - text: Bắt đầu ngay
+      link: /getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: Xem trên GitHub
+      link: https://github.com/typical-mc/SimpPay
+      icon: external
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+## Tính năng chính
+
+<CardGrid stagger>
+  <Card title="Đa cổng thanh toán" icon="puzzle">
+    Hỗ trợ 5 cổng thẻ cào và 3 cổng QR banking
+  </Card>
+  <Card title="Webhook thời gian thực" icon="rocket">
+    Sepay webhook cho xác nhận thanh toán tức thì không cần polling
+  </Card>
+  <Card title="Hệ thống mốc nạp" icon="star">
+    Milestone cá nhân và server với BossBar hiển thị tiến độ
+  </Card>
+  <Card title="Streak liên tiếp" icon="approve-check">
+    Thưởng cho người chơi nạp tiền liên tục nhiều ngày
+  </Card>
+  <Card title="Bảng xếp hạng" icon="trophy">
+    Leaderboard theo ngày/tuần/tháng/năm với PlaceholderAPI
+  </Card>
+  <Card title="GUI thân thiện" icon="laptop">
+    Menu InvUI đẹp mắt với AnvilGUI cho nhập liệu
+  </Card>
+</CardGrid>
+
+## Bắt đầu nhanh
+
+<CardGrid>
+  <Card title="Cài đặt" icon="rocket">
+    Tải plugin, cấu hình API keys, khởi động lại server
+
+    [Hướng dẫn cài đặt →](/getting-started/installation/)
+
+  </Card>
+  <Card title="Cấu hình" icon="setting">
+    Thiết lập database, cổng thanh toán, và phần thưởng
+
+    [Cấu hình chính →](/configuration/main-config/)
+
+  </Card>
+  <Card title="Tính năng" icon="star">
+    Khám phá milestones, streaks, và leaderboard
+
+    [Xem tính năng →](/features/milestones/)
+
+  </Card>
+</CardGrid>

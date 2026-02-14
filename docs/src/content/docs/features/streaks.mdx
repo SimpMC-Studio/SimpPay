@@ -1,0 +1,257 @@
+---
+title: Streak liên tiếp
+description: Hệ thống thưởng nạp tiền liên tiếp nhiều ngày
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Hệ thống streak thưởng người chơi nạp tiền liên tục nhiều ngày. Khuyến khích người chơi nạp đều đặn.
+
+## Cách hoạt động
+
+### Logic streak
+
+- **Ngày đầu tiên**: Nạp lần đầu → Streak = 1
+- **Ngày tiếp theo**: Nạp trong 24h tiếp theo → Streak + 1
+- **Bỏ lỡ 1 ngày**: Không nạp > 24h → Streak reset về 1
+- **Nhiều lần trong ngày**: Nạp nhiều lần cùng ngày → Streak không đổi
+
+### Best streak
+
+- Track streak cao nhất từng đạt được
+- Không bao giờ giảm
+- Hiển thị qua PlaceholderAPI
+
+## Cấu hình
+
+File: `plugins/SimpPay/streak-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Streak Configuration
+
+# Bật/tắt hệ thống streak
+enabled: true
+
+# Milestone rewards - Thưởng khi đạt streak nhất định
+milestones:
+  3:
+    name: "Streak 3 ngày"
+    commands:
+      - "give {player} diamond 3"
+    message: "<green>🔥 Bạn đã nạp 3 ngày liên tiếp! Nhận 3 diamond</green>"
+
+  7:
+    name: "Streak 1 tuần"
+    commands:
+      - "give {player} diamond 10"
+      - "give {player} emerald 2"
+    message: "<gradient:green:aqua>🔥 Streak 7 ngày! Nhận 10 diamond + 2 emerald</gradient>"
+
+  14:
+    name: "Streak 2 tuần"
+    commands:
+      - "give {player} diamond 25"
+      - "give {player} emerald 5"
+    message: "<gradient:yellow:gold>🔥 Streak 14 ngày! Nhận 25 diamond + 5 emerald</gradient>"
+
+  30:
+    name: "Streak 1 tháng"
+    commands:
+      - "give {player} diamond 60"
+      - "give {player} emerald 15"
+      - "give {player} netherite_ingot 1"
+    message: "<gradient:red:gold>🔥 Streak 30 ngày! Nhận 60 diamond + 15 emerald + 1 netherite</gradient>"
+
+  60:
+    name: "Streak 2 tháng"
+    commands:
+      - "give {player} diamond 150"
+      - "give {player} emerald 40"
+      - "give {player} netherite_ingot 3"
+    message: "<gradient:purple:pink>🔥 Streak 60 ngày! Nhận 150 diamond + 40 emerald + 3 netherite</gradient>"
+
+  90:
+    name: "Streak 3 tháng"
+    commands:
+      - "give {player} diamond 250"
+      - "give {player} emerald 75"
+      - "give {player} netherite_ingot 5"
+      - "lp user {player} permission set vip.streak90"
+    message: "<gradient:gold:red>🔥🔥 STREAK 90 NGÀY! Nhận 250 diamond + 75 emerald + 5 netherite + VIP rank!</gradient>"
+```
+
+## Chi tiết cấu hình
+
+### enabled
+
+- **Kiểu**: `boolean`
+- **Mặc định**: `true`
+- **Mô tả**: Bật/tắt hệ thống streak
+
+### milestones
+
+Map của streak days → rewards.
+
+**Key**: Số ngày streak (integer)
+**Value**: Object chứa `name`, `commands`, `message`
+
+#### name
+
+- **Kiểu**: `string`
+- **Mô tả**: Tên milestone (dùng để track completion)
+
+#### commands
+
+- **Kiểu**: `list<string>`
+- **Mô tả**: Lệnh thực thi khi đạt streak
+
+**Placeholders:**
+- `{player}` - Tên người chơi
+- `{streak}` - Số ngày streak hiện tại
+- `{best_streak}` - Streak tốt nhất
+
+#### message
+
+- **Kiểu**: `string`
+- **Mô tả**: Message gửi cho người chơi (MiniMessage format)
+
+## Ví dụ streak flow
+
+### Ngày 1 (Thứ 2)
+
+```
+Player nạp 50k → Streak = 1
+Message: "Streak của bạn: 1 ngày 🔥"
+```
+
+### Ngày 2 (Thứ 3)
+
+```
+Player nạp 100k → Streak = 2
+Message: "Streak của bạn: 2 ngày 🔥"
+```
+
+### Ngày 3 (Thứ 4)
+
+```
+Player nạp 50k → Streak = 3
+Trigger milestone 3 ngày:
+- Give 3 diamond
+- Message: "🔥 Bạn đã nạp 3 ngày liên tiếp!"
+```
+
+### Ngày 4 (Thứ 5)
+
+```
+Player KHÔNG nạp → Streak vẫn = 3 (chưa quá 24h)
+```
+
+### Ngày 5 (Thứ 6)
+
+```
+Player vẫn KHÔNG nạp → Streak reset về 0
+```
+
+### Ngày 6 (Thứ 7)
+
+```
+Player nạp lại → Streak = 1 (bắt đầu lại)
+Message: "Streak của bạn đã bị reset do không nạp liên tục."
+```
+
+## Date calculation
+
+Streak dùng **LocalDate** (ngày địa phương) để tính:
+
+- Timezone: `ZoneId.systemDefault()` (timezone của server)
+- So sánh: `LocalDate.now()` vs `lastPaymentDate`
+- Consecutive: `lastPaymentDate.plusDays(1).equals(today)`
+
+<Aside type="note">
+  Nếu server ở timezone UTC+7 (Việt Nam), ngày mới bắt đầu lúc 00:00 UTC+7.
+</Aside>
+
+## Streak menu
+
+Người chơi có thể xem streak qua lệnh:
+
+```
+/streak
+```
+
+Menu hiển thị:
+- Current streak
+- Best streak
+- Tiến độ đến milestone tiếp theo
+- Danh sách milestone rewards
+
+## Testing
+
+<Steps>
+
+1. **Fake payment ngày 1**
+
+   ```
+   /simppayadmin fakebank player1 10000
+   ```
+
+   Check: Streak = 1
+
+2. **Fake payment ngày 2**
+
+   Đổi system date hoặc đợi 24h, sau đó:
+   ```
+   /simppayadmin fakebank player1 10000
+   ```
+
+   Check: Streak = 2
+
+3. **Fake payment ngày 3**
+
+   ```
+   /simppayadmin fakebank player1 10000
+   ```
+
+   Check: Streak = 3, nhận thưởng milestone 3 ngày
+
+</Steps>
+
+<Aside type="tip">
+  Để test nhanh, có thể tạm thời sửa code `StreakService` để dùng hours thay vì days.
+</Aside>
+
+## Best practices
+
+1. **Thưởng tăng dần**: Streak cao hơn → Thưởng nhiều hơn
+
+2. **Milestone hợp lý**: 3, 7, 14, 30, 60, 90 ngày
+
+3. **Thông báo rõ ràng**: Dùng emoji 🔥 để highlight streak
+
+4. **Khuyến khích**: Gửi reminder khi sắp mất streak
+
+5. **Track best streak**: Tạo động lực phá kỷ lục
+
+## Placeholders
+
+Hiển thị streak info qua PlaceholderAPI:
+
+```
+%simppay_streak_current%  - Streak hiện tại
+%simppay_streak_best%     - Best streak
+```
+
+**Ví dụ scoreboard:**
+```
+&6Streak: &e%simppay_streak_current% ngày 🔥
+&6Best: &e%simppay_streak_best% ngày
+```
+
+## Xem thêm
+
+- [Milestones](/features/milestones/) - Thưởng theo mốc nạp
+- [Nạp lần đầu](/features/naplandau/) - Thưởng nạp lần đầu
+- [Placeholders](/placeholders/index/) - Hiển thị streak info

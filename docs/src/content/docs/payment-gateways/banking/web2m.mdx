@@ -1,0 +1,180 @@
+---
+title: Web2M
+description: Hướng dẫn cấu hình cổng thanh toán Web2M
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Web2M là cổng thanh toán QR banking với API ổn định và nhiều tính năng.
+
+## Đăng ký tài khoản
+
+<Steps>
+
+1. **Truy cập website**
+
+   Vào [https://web2m.com](https://web2m.com)
+
+2. **Đăng ký tài khoản**
+
+   - Click "Đăng ký"
+   - Điền thông tin và xác minh
+
+3. **Liên kết ngân hàng**
+
+   - Thêm tài khoản ngân hàng
+   - Xác minh bằng chuyển khoản test
+
+4. **Lấy API Key**
+
+   - Vào **API Settings**
+   - Copy **API Key** và **Secret Key**
+
+</Steps>
+
+## Cấu hình plugin
+
+File: `plugins/SimpPay/banking/web2m-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+enabled: true
+
+# API Credentials từ Web2M
+api-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+secret-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Bank account info
+account-number: "1234567890"
+account-name: "NGUYEN VAN A"
+bank-code: "VCB"
+
+timeout: 300
+interval: 5
+
+min-amount: 10000
+max-amount: 50000000
+```
+
+## Chi tiết cấu hình
+
+### api-key / secret-key
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: API credentials từ Web2M dashboard
+
+<Aside type="caution">
+  Giữ Secret Key bí mật! Không chia sẻ hoặc commit vào Git.
+</Aside>
+
+### account-number / account-name / bank-code
+
+- **Kiểu**: `string`
+- **Bắt buộc**: Có
+- **Mô tả**: Thông tin tài khoản ngân hàng nhận tiền
+
+**Bank codes phổ biến:**
+- `VCB` - Vietcombank
+- `TCB` - Techcombank
+- `BIDV` - BIDV
+- `CTG` - VietinBank
+- `ACB` - ACB
+- `MB` - MB Bank
+- `VPB` - VPBank
+
+## API Endpoints
+
+### Create Payment
+
+```
+POST https://api.web2m.com/v1/payment/create
+```
+
+**Request:**
+```json
+{
+  "api_key": "xxx",
+  "amount": 50000,
+  "description": "Nap tien MC - player123",
+  "order_id": "SP-1234567890",
+  "bank_code": "VCB",
+  "account_number": "1234567890"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "order_id": "SP-1234567890",
+    "qr_code": "https://api.web2m.com/qr/abc123.png",
+    "payment_url": "https://web2m.com/pay/abc123"
+  }
+}
+```
+
+### Check Status
+
+```
+POST https://api.web2m.com/v1/payment/check
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "order_id": "SP-1234567890",
+    "status": "PAID",
+    "amount": 50000
+  }
+}
+```
+
+## Testing
+
+<Steps>
+
+1. Bật debug mode
+2. Reload plugin: `/simppayadmin reload`
+3. Test: `/bank 50000`
+4. Quét QR và chuyển khoản
+5. Kiểm tra coins được cộng
+
+</Steps>
+
+## Troubleshooting
+
+### Invalid API Key
+
+<Aside type="caution">
+  **Lỗi**: `Invalid API Key`
+
+  **Giải pháp**:
+  - Kiểm tra lại API Key và Secret Key
+  - Copy chính xác từ dashboard
+  - Reload plugin
+</Aside>
+
+### Bank account not found
+
+<Aside type="caution">
+  **Lỗi**: `Bank account not found`
+
+  **Giải pháp**:
+  - Kiểm tra `account-number` và `bank-code` đúng
+  - Xác minh tài khoản đã được liên kết trên Web2M
+</Aside>
+
+<Aside type="danger">
+  Web2M yêu cầu tài khoản ngân hàng phải được xác minh trước khi sử dụng API.
+</Aside>
+
+## Xem thêm
+
+- [PayOS](/payment-gateways/banking/payos/) - Alternative gateway
+- [Sepay](/payment-gateways/banking/sepay/) - Webhook gateway

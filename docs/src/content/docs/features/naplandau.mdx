@@ -1,0 +1,209 @@
+---
+title: Nạp lần đầu
+description: Thưởng đặc biệt cho người chơi nạp lần đầu tiên
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Hệ thống nạp lần đầu thưởng người chơi khi nạp tiền lần đầu tiên, khuyến khích người chơi mới.
+
+## Cách hoạt động
+
+- Trigger khi người chơi nạp tiền lần đầu (bất kỳ số tiền nào)
+- Chỉ nhận thưởng 1 lần duy nhất
+- Track qua database (không thể nhận lại)
+
+## Cấu hình
+
+File: `plugins/SimpPay/naplandau-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Nạp lần đầu Configuration
+
+# Bật/tắt hệ thống nạp lần đầu
+enabled: true
+
+# Commands thực thi khi nạp lần đầu
+commands:
+  - "give {player} diamond 10"
+  - "give {player} emerald 3"
+  - "eco give {player} 5000"
+  - "broadcast &6&l[NẠP LẦN ĐẦU] &e{player} đã nạp tiền lần đầu tiên!"
+
+# Message gửi cho người chơi
+message: |
+  <green><bold>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</bold></green>
+  <yellow><bold>🎁 PHẦN THƯỞNG NẠP LẦN ĐẦU!</bold></yellow>
+
+  <green>Cảm ơn bạn đã nạp tiền lần đầu!</green>
+  <green>Bạn đã nhận:</green>
+  <gray>-</gray> <yellow>10 Diamond</yellow>
+  <gray>-</gray> <yellow>3 Emerald</yellow>
+  <gray>-</gray> <yellow>5,000 coins</yellow>
+
+  <green>Chúc bạn chơi game vui vẻ!</green>
+  <green><bold>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</bold></green>
+```
+
+## Chi tiết cấu hình
+
+### enabled
+
+- **Kiểu**: `boolean`
+- **Mặc định**: `true`
+- **Mô tả**: Bật/tắt hệ thống nạp lần đầu
+
+### commands
+
+- **Kiểu**: `list<string>`
+- **Mô tả**: Lệnh thực thi khi nạp lần đầu
+
+**Placeholders:**
+- `{player}` - Tên người chơi
+- `{amount}` - Số tiền nạp lần đầu
+
+**Ví dụ:**
+```yaml
+commands:
+  - "give {player} diamond 10"
+  - "lp user {player} permission set vip.firsttime"
+  - "broadcast &a{player} đã nạp lần đầu!"
+```
+
+### message
+
+- **Kiểu**: `string` (multi-line)
+- **Mô tả**: Message gửi cho người chơi (MiniMessage format)
+
+## Ví dụ flow
+
+1. **Player mới join server**
+
+   Chưa từng nạp tiền
+
+2. **Player nạp lần đầu**
+
+   ```
+   /bank 50000
+   ```
+
+   Hoặc `/napthe` và nạp thẻ
+
+3. **Thanh toán thành công**
+
+   - Nhận coins từ payment (50 coins)
+   - Trigger nạp lần đầu:
+     - Give 10 diamond
+     - Give 3 emerald
+     - Give 5000 coins
+     - Broadcast message
+     - Show message cho player
+
+4. **Player nạp lần 2**
+
+   ```
+   /bank 100000
+   ```
+
+   - Chỉ nhận coins từ payment (100 coins)
+   - KHÔNG trigger nạp lần đầu (đã nhận rồi)
+
+## Database tracking
+
+Plugin track nạp lần đầu qua bảng `player_data`:
+
+```sql
+SELECT * FROM player_data WHERE player_uuid = 'xxx' AND period = 'ALL';
+```
+
+Nếu `total_amount > 0`, player đã nạp → Không trigger nạp lần đầu.
+
+## Testing
+
+<Steps>
+
+1. **Tạo player test mới**
+
+   Join server với account chưa từng nạp
+
+2. **Fake payment**
+
+   ```
+   /simppayadmin fakebank <player> 10000
+   ```
+
+3. **Kiểm tra**
+
+   - Commands được thực thi
+   - Message hiển thị
+   - Broadcast message
+   - Player có items/coins
+
+4. **Test lần 2**
+
+   ```
+   /simppayadmin fakebank <player> 10000
+   ```
+
+   Không nhận thưởng nạp lần đầu nữa
+
+</Steps>
+
+## Best practices
+
+1. **Thưởng hấp dẫn**: Tạo động lực cho người chơi mới nạp
+
+2. **Broadcast**: Thông báo cho server để tạo FOMO
+
+3. **Hướng dẫn**: Thêm message hướng dẫn cách dùng items/coins
+
+4. **Combo với milestone**: Nạp lần đầu + Milestone 100k = Double reward
+
+## Ví dụ cấu hình nâng cao
+
+```yaml
+enabled: true
+
+commands:
+  # Give starter pack
+  - "give {player} diamond 20"
+  - "give {player} emerald 5"
+  - "give {player} golden_apple 3"
+
+  # Give coins
+  - "eco give {player} 10000"
+
+  # Give rank
+  - "lp user {player} parent add vip"
+
+  # Broadcast
+  - "broadcast &6&l━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  - "broadcast &e&l🎉 {player} đã nạp tiền lần đầu!"
+  - "broadcast &e&lChúc mừng và cảm ơn bạn đã ủng hộ server!"
+  - "broadcast &6&l━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+message: |
+  <gold><bold>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</bold></gold>
+  <gradient:yellow:gold><bold>🎁 CHÀO MỪNG THÀNH VIÊN MỚI!</bold></gradient>
+
+  <green>Cảm ơn bạn đã nạp tiền lần đầu!</green>
+
+  <yellow><bold>Bạn đã nhận STARTER PACK:</bold></yellow>
+  <gray>•</gray> <aqua>20 Diamond</aqua>
+  <gray>•</gray> <aqua>5 Emerald</aqua>
+  <gray>•</gray> <aqua>3 Golden Apple</aqua>
+  <gray>•</gray> <aqua>10,000 coins</aqua>
+  <gray>•</gray> <aqua>VIP Rank</aqua>
+
+  <green>Chúc bạn có trải nghiệm tuyệt vời!</green>
+  <gold><bold>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</bold></gold>
+```
+
+## Xem thêm
+
+- [Milestones](/features/milestones/) - Thưởng theo mốc nạp
+- [Streak](/features/streaks/) - Thưởng nạp liên tiếp
+- [Cấu hình tin nhắn](/configuration/messages/) - Customize messages

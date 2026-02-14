@@ -1,0 +1,22 @@
+/* Custom styles for SimpPay docs */
+:root {
+  --sl-hue-accent: 142;
+  --sl-color-accent-low: #d4f4dd;
+  --sl-color-accent: #10b981;
+  --sl-color-accent-high: #047857;
+}
+
+/* Code block improvements */
+pre {
+  border-radius: 8px;
+}
+
+/* Table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background-color: var(--sl-color-gray-6);
+}

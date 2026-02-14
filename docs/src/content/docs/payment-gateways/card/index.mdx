@@ -1,0 +1,246 @@
+---
+title: Nạp thẻ cào
+description: Tổng quan về hệ thống nạp thẻ cào
+---
+
+import { Steps, Card, CardGrid } from '@astrojs/starlight/components';
+
+SimpPay hỗ trợ 5 cổng nạp thẻ cào phổ biến tại Việt Nam. Tất cả đều hỗ trợ Viettel, Mobifone, và Vinaphone.
+
+## Các cổng được hỗ trợ
+
+<CardGrid>
+  <Card title="TheSieuToc" icon="star">
+    Cổng phổ biến nhất, tỷ lệ chiết khấu tốt
+
+    [Xem hướng dẫn →](/payment-gateways/card/thesieutoc/)
+  </Card>
+
+  <Card title="Card2K" icon="puzzle">
+    API ổn định, dễ tích hợp
+
+    [Xem hướng dẫn →](/payment-gateways/card/card2k/)
+  </Card>
+
+  <Card title="Gachthe1s" icon="rocket">
+    Xử lý nhanh, hỗ trợ tốt
+
+    [Xem hướng dẫn →](/payment-gateways/card/gachthe1s/)
+  </Card>
+
+  <Card title="TheSieuRe" icon="approve-check">
+    Phí thấp, phù hợp server nhỏ
+
+    [Xem hướng dẫn →](/payment-gateways/card/thesieure/)
+  </Card>
+
+  <Card title="Doithe1s" icon="setting">
+    Đa dạng mệnh giá
+
+    [Xem hướng dẫn →](/payment-gateways/card/doithe1s/)
+  </Card>
+</CardGrid>
+
+## Luồng nạp thẻ
+
+<Steps>
+
+1. **Người chơi mở menu**
+
+   Gõ lệnh `/napthe` để mở GUI
+
+2. **Chọn loại thẻ**
+
+   Chọn Viettel, Mobifone, hoặc Vinaphone
+
+3. **Chọn mệnh giá**
+
+   Chọn từ 10k đến 1 triệu VNĐ
+
+4. **Nhập serial**
+
+   Nhập serial thẻ qua AnvilGUI
+
+5. **Nhập PIN**
+
+   Nhập mã PIN thẻ qua AnvilGUI
+
+6. **Xử lý thanh toán**
+
+   - Plugin gửi request đến API gateway
+   - Polling kiểm tra trạng thái mỗi 10 giây
+   - Timeout sau 5 phút (configurable)
+
+7. **Nhận kết quả**
+
+   - **Thành công**: Nhận coins + message
+   - **Thất bại**: Nhận message lỗi
+   - **Timeout**: Có thể check lại sau
+
+</Steps>
+
+## So sánh các cổng
+
+| Cổng | Tỷ lệ CK | Tốc độ | API Stability | Khuyến nghị |
+|------|----------|--------|---------------|-------------|
+| TheSieuToc | ⭐⭐⭐⭐⭐ | Nhanh | Cao | ✅ Tốt nhất |
+| Card2K | ⭐⭐⭐⭐ | Nhanh | Cao | ✅ Khuyến nghị |
+| Gachthe1s | ⭐⭐⭐⭐ | Trung bình | Trung bình | ⚠️ OK |
+| TheSieuRe | ⭐⭐⭐ | Chậm | Trung bình | ⚠️ Server nhỏ |
+| Doithe1s | ⭐⭐⭐⭐ | Nhanh | Cao | ✅ Khuyến nghị |
+
+## Loại thẻ được hỗ trợ
+
+Tất cả các cổng đều hỗ trợ 3 nhà mạng chính:
+
+- **VIETTEL** - Viettel Telecom
+- **MOBIFONE** - MobiFone
+- **VINAPHONE** - VinaPhone
+
+## Mệnh giá được hỗ trợ
+
+Các mệnh giá phổ biến (có thể khác nhau giữa các cổng):
+
+- 10,000 VNĐ
+- 20,000 VNĐ
+- 30,000 VNĐ
+- 50,000 VNĐ
+- 100,000 VNĐ
+- 200,000 VNĐ
+- 300,000 VNĐ
+- 500,000 VNĐ
+- 1,000,000 VNĐ
+
+## Cấu hình chung
+
+Tất cả các cổng thẻ cào có cấu trúc config tương tự:
+
+```yaml
+# Bật/tắt cổng
+enabled: true
+
+# API credentials
+partner-id: "YOUR_PARTNER_ID"
+partner-key: "YOUR_PARTNER_KEY"
+
+# Timeout settings
+timeout: 300  # 5 phút
+interval: 10  # Check mỗi 10 giây
+
+# Loại thẻ được hỗ trợ
+supported-card-types:
+  - VIETTEL
+  - MOBIFONE
+  - VINAPHONE
+
+# Mệnh giá được hỗ trợ
+supported-amounts:
+  - 10000
+  - 20000
+  - 50000
+  - 100000
+  - 200000
+  - 500000
+  - 1000000
+```
+
+## Trạng thái thanh toán
+
+| Status | Mô tả | Hành động |
+|--------|-------|-----------|
+| `PENDING` | Đang xử lý | Tiếp tục polling |
+| `SUCCESS` | Thành công | Award coins |
+| `FAILED` | Thất bại | Thông báo lỗi |
+| `TIMEOUT` | Hết thời gian | Dừng polling |
+| `WRONG_AMOUNT` | Sai mệnh giá | Thông báo lỗi |
+| `USED` | Thẻ đã dùng | Thông báo lỗi |
+| `INVALID` | Thẻ không hợp lệ | Thông báo lỗi |
+
+## Lỗi thường gặp
+
+### Thẻ bị từ chối
+
+**Nguyên nhân:**
+- Thẻ đã được sử dụng
+- Sai serial hoặc PIN
+- Sai mệnh giá
+- Thẻ giả/không hợp lệ
+
+**Giải pháp:**
+- Kiểm tra thẻ chưa sử dụng
+- Nhập đúng serial/PIN (không có khoảng trắng)
+- Chọn đúng mệnh giá
+- Mua thẻ từ nguồn uy tín
+
+### Tài khoản đại lý hết tiền
+
+**Nguyên nhân:**
+- Tài khoản gateway không đủ số dư
+
+**Giải pháp:**
+- Nạp tiền vào tài khoản đại lý
+- Kiểm tra balance trên dashboard gateway
+
+### Timeout
+
+**Nguyên nhân:**
+- API gateway chậm
+- Network issues
+- Server gateway quá tải
+
+**Giải pháp:**
+- Tăng `timeout` trong config
+- Thử lại sau vài phút
+- Liên hệ support gateway
+
+## Best practices
+
+1. **Đăng ký nhiều cổng**: Có backup khi một cổng gặp sự cố
+
+2. **Monitor balance**: Thiết lập alert khi tài khoản đại lý sắp hết tiền
+
+3. **Test định kỳ**: Test mỗi cổng với thẻ nhỏ (10k-20k) để đảm bảo hoạt động
+
+4. **Log transactions**: Bật debug mode để log tất cả giao dịch
+
+5. **Thông báo rõ ràng**: Customize messages để hướng dẫn người chơi đúng cách
+
+## Chọn cổng phù hợp
+
+### Server mới / nhỏ (< 50 players)
+
+Khuyến nghị: **TheSieuToc** hoặc **Card2K**
+- Tỷ lệ chiết khấu tốt
+- API ổn định
+- Dễ setup
+
+### Server trung bình (50-200 players)
+
+Khuyến nghị: **TheSieuToc** + **Doithe1s** (backup)
+- Hai cổng ổn định
+- Có backup khi một cổng gặp sự cố
+
+### Server lớn (> 200 players)
+
+Khuyến nghị: **TheSieuToc** + **Card2K** + **Doithe1s**
+- Ba cổng để load balancing
+- Giảm downtime
+- Tăng reliability
+
+## Bước tiếp theo
+
+Chọn một cổng để bắt đầu:
+
+<CardGrid>
+  <Card title="TheSieuToc (Khuyến nghị)" icon="star">
+    Setup cổng phổ biến nhất
+
+    [Hướng dẫn setup →](/payment-gateways/card/thesieutoc/)
+  </Card>
+
+  <Card title="Card2K" icon="puzzle">
+    Alternative tốt cho TheSieuToc
+
+    [Hướng dẫn setup →](/payment-gateways/card/card2k/)
+  </Card>
+</CardGrid>

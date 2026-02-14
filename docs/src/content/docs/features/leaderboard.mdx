@@ -1,0 +1,237 @@
+---
+title: Bảng xếp hạng
+description: Hệ thống leaderboard theo nhiều kỳ
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+SimpPay cung cấp bảng xếp hạng người chơi nạp nhiều nhất theo nhiều kỳ khác nhau.
+
+## Các loại leaderboard
+
+| Kỳ | Mô tả | Reset |
+|-----|-------|-------|
+| `ALL` | Tổng nạp từ trước đến nay | Không bao giờ |
+| `DAILY` | Tổng nạp trong ngày | 00:00 mỗi ngày |
+| `WEEKLY` | Tổng nạp trong tuần | 00:00 Thứ 2 |
+| `MONTHLY` | Tổng nạp trong tháng | 00:00 ngày 1 |
+| `YEARLY` | Tổng nạp trong năm | 00:00 ngày 1/1 |
+
+## Cache system
+
+Leaderboard sử dụng cache để tối ưu hiệu suất:
+
+- **TTL**: 1 phút
+- **Update**: Synchronous sau mỗi payment success
+- **Storage**: In-memory cache + database backup
+
+### Cache flow
+
+1. **Payment success** → Update cache ngay lập tức
+2. **PlaceholderAPI request** → Đọc từ cache
+3. **Cache expired** → Reload từ database
+
+<Aside type="tip">
+  Cache được update synchronously trên `PaymentSuccessEvent` để đảm bảo data luôn fresh.
+</Aside>
+
+## PlaceholderAPI
+
+Hiển thị leaderboard qua PlaceholderAPI:
+
+### Top player name
+
+```
+%simppay_leaderboard_<type>_<rank>_name%
+```
+
+**Ví dụ:**
+```
+%simppay_leaderboard_all_1_name%      - Top 1 tổng nạp
+%simppay_leaderboard_daily_1_name%    - Top 1 nạp ngày
+%simppay_leaderboard_weekly_2_name%   - Top 2 nạp tuần
+%simppay_leaderboard_monthly_3_name%  - Top 3 nạp tháng
+```
+
+### Top player amount
+
+```
+%simppay_leaderboard_<type>_<rank>_amount%
+```
+
+**Ví dụ:**
+```
+%simppay_leaderboard_all_1_amount%      - Số tiền top 1 tổng
+%simppay_leaderboard_daily_1_amount%    - Số tiền top 1 ngày
+%simppay_leaderboard_weekly_2_amount%   - Số tiền top 2 tuần
+```
+
+## Ví dụ sử dụng
+
+### Scoreboard
+
+```yaml
+# scoreboard.yml
+lines:
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+  - "&e&lTOP NẠP THÁNG"
+  - ""
+  - "&6#1 &f%simppay_leaderboard_monthly_1_name%"
+  - "&7   %simppay_leaderboard_monthly_1_amount%đ"
+  - ""
+  - "&6#2 &f%simppay_leaderboard_monthly_2_name%"
+  - "&7   %simppay_leaderboard_monthly_2_amount%đ"
+  - ""
+  - "&6#3 &f%simppay_leaderboard_monthly_3_name%"
+  - "&7   %simppay_leaderboard_monthly_3_amount%đ"
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+```
+
+### Hologram (DecentHolograms)
+
+```yaml
+# holograms/top_napthe.yml
+lines:
+  - "<gradient:gold:yellow>TOP NẠP THÁNG</gradient>"
+  - ""
+  - "<gold>#1</gold> <white>%simppay_leaderboard_monthly_1_name%</white>"
+  - "<gray>%simppay_leaderboard_monthly_1_amount%đ</gray>"
+  - ""
+  - "<gold>#2</gold> <white>%simppay_leaderboard_monthly_2_name%</white>"
+  - "<gray>%simppay_leaderboard_monthly_2_amount%đ</gray>"
+  - ""
+  - "<gold>#3</gold> <white>%simppay_leaderboard_monthly_3_name%</white>"
+  - "<gray>%simppay_leaderboard_monthly_3_amount%đ</gray>"
+```
+
+### TAB plugin
+
+```yaml
+# tab.yml
+header:
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+  - "&e&lTOP NẠP TUẦN"
+  - ""
+  - "&6#1 &f%simppay_leaderboard_weekly_1_name% &7- &e%simppay_leaderboard_weekly_1_amount%đ"
+  - "&6#2 &f%simppay_leaderboard_weekly_2_name% &7- &e%simppay_leaderboard_weekly_2_amount%đ"
+  - "&6#3 &f%simppay_leaderboard_weekly_3_name% &7- &e%simppay_leaderboard_weekly_3_amount%đ"
+  - "&6&l━━━━━━━━━━━━━━━━━━━━━━"
+```
+
+### Chat format
+
+```yaml
+# chat-format.yml
+format: "&7[&6Top %simppay_leaderboard_all_rank%&7] &f%player_name%: %message%"
+```
+
+## Database schema
+
+Leaderboard data được lưu trong bảng `leaderboard_cache`:
+
+```sql
+CREATE TABLE leaderboard_cache (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  period VARCHAR(20) NOT NULL,
+  rank INT NOT NULL,
+  player_uuid VARCHAR(36) NOT NULL,
+  player_name VARCHAR(16) NOT NULL,
+  amount BIGINT NOT NULL,
+  cached_at TIMESTAMP NOT NULL
+);
+```
+
+## Performance optimization
+
+### Batch queries
+
+Thay vì query từng player, SimpPay dùng batch approach:
+
+**Before (5 queries):**
+```sql
+SELECT * FROM player_data WHERE period = 'DAILY' ORDER BY total_amount DESC LIMIT 10;
+SELECT * FROM player_data WHERE period = 'WEEKLY' ORDER BY total_amount DESC LIMIT 10;
+SELECT * FROM player_data WHERE period = 'MONTHLY' ORDER BY total_amount DESC LIMIT 10;
+SELECT * FROM player_data WHERE period = 'YEARLY' ORDER BY total_amount DESC LIMIT 10;
+SELECT * FROM player_data WHERE period = 'ALL' ORDER BY total_amount DESC LIMIT 10;
+```
+
+**After (2 queries):**
+```sql
+-- Query 1: Get all top 10 for all periods
+SELECT * FROM player_data WHERE period IN ('DAILY','WEEKLY','MONTHLY','YEARLY','ALL')
+ORDER BY period, total_amount DESC;
+
+-- Query 2: Get player names
+SELECT uuid, username FROM sp_player WHERE uuid IN (...);
+```
+
+### Synchronous cache update
+
+Cache được update ngay sau payment success (không qua queue):
+
+```java
+@EventHandler(priority = EventPriority.HIGH)
+public void onPaymentSuccess(PaymentSuccessEvent event) {
+    // Update cache synchronously
+    cacheDataService.updateCache(event.getPlayer());
+}
+```
+
+<Aside type="note">
+  Synchronous update đảm bảo leaderboard luôn accurate, không có delay.
+</Aside>
+
+## Xem lịch sử cá nhân
+
+Người chơi có thể xem lịch sử nạp của mình:
+
+```
+/lichsunapthe
+```
+
+Hoặc admin xem lịch sử của người khác:
+
+```
+/simppayadmin lichsu <player>
+```
+
+## Best practices
+
+1. **Limit top 10**: Chỉ cache top 10 để giảm memory usage
+
+2. **Update on payment**: Update cache ngay sau payment để data fresh
+
+3. **TTL 1 phút**: Balance giữa performance và accuracy
+
+4. **Fallback**: Nếu cache miss, query database
+
+## Troubleshooting
+
+### Placeholder trả về empty
+
+<Aside type="caution">
+  **Nguyên nhân**: Cache chưa được populate hoặc không có data
+
+  **Giải pháp**:
+  - Đợi có payment đầu tiên để populate cache
+  - Kiểm tra PlaceholderAPI đã cài
+  - Verify placeholder syntax đúng
+</Aside>
+
+### Leaderboard không update
+
+<Aside type="caution">
+  **Nguyên nhân**: Cache không được refresh
+
+  **Giải pháp**:
+  - Kiểm tra `CacheUpdaterListener` đang hoạt động
+  - Bật debug mode để xem cache update logs
+  - Restart plugin để clear cache
+</Aside>
+
+## Xem thêm
+
+- [Placeholders](/placeholders/index/) - Tất cả placeholders
+- [Milestones](/features/milestones/) - Thưởng theo mốc nạp
+- [Commands](/commands/player-commands/) - Lệnh xem lịch sử

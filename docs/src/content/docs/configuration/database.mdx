@@ -1,0 +1,412 @@
+---
+title: Cơ sở dữ liệu
+description: Cấu hình database cho SimpPay
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+File `database-config.yml` cấu hình kết nối database. SimpPay hỗ trợ H2 (embedded) và MySQL/MariaDB.
+
+## Vị trí file
+
+```
+plugins/SimpPay/database-config.yml
+```
+
+## Chọn database
+
+<Tabs>
+  <TabItem label="H2 (Khuyến nghị cho server nhỏ)">
+    **H2 Database** - Embedded database, không cần cài đặt thêm
+
+    **Ưu điểm:**
+    - ✅ Không cần MySQL server
+    - ✅ Setup tức thì, zero configuration
+    - ✅ Phù hợp cho server < 100 players
+    - ✅ Backup dễ dàng (chỉ cần copy file)
+
+    **Nhược điểm:**
+    - ⚠️ Không phù hợp cho server lớn
+    - ⚠️ Không thể truy vấn từ bên ngoài
+    - ⚠️ Khó scale khi traffic cao
+  </TabItem>
+
+  <TabItem label="MySQL/MariaDB (Khuyến nghị cho server lớn)">
+    **MySQL/MariaDB** - External database server
+
+    **Ưu điểm:**
+    - ✅ Hiệu suất cao cho server lớn
+    - ✅ Có thể truy vấn từ web dashboard
+    - ✅ Dễ backup và replicate
+    - ✅ Scale tốt với traffic cao
+
+    **Nhược điểm:**
+    - ⚠️ Cần cài MySQL/MariaDB server
+    - ⚠️ Cần cấu hình credentials
+    - ⚠️ Phức tạp hơn H2
+  </TabItem>
+</Tabs>
+
+## Cấu hình H2
+
+```yaml
+# SimpPay Database Configuration
+# Made by typical.smc
+
+# Database type: H2 hoặc MYSQL
+type: "H2"
+
+# H2 Configuration
+h2:
+  # File path (relative to plugin folder)
+  file-path: "database"
+
+  # Connection pool settings
+  pool:
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+```
+
+### Chi tiết cấu hình H2
+
+| Trường | Mô tả | Mặc định |
+|--------|-------|----------|
+| `file-path` | Tên file database (không cần .mv.db) | `"database"` |
+| `maximum-pool-size` | Số connection tối đa | `10` |
+| `minimum-idle` | Số connection idle tối thiểu | `2` |
+| `connection-timeout` | Timeout khi lấy connection (ms) | `30000` |
+| `idle-timeout` | Timeout cho idle connection (ms) | `600000` |
+| `max-lifetime` | Thời gian sống tối đa của connection (ms) | `1800000` |
+
+<Aside type="note">
+  File database H2 sẽ được tạo tại `plugins/SimpPay/database.mv.db`
+</Aside>
+
+## Cấu hình MySQL
+
+```yaml
+# SimpPay Database Configuration
+# Made by typical.smc
+
+# Database type: H2 hoặc MYSQL
+type: "MYSQL"
+
+# MySQL Configuration
+mysql:
+  # Database connection
+  host: "localhost"
+  port: 3306
+  database: "simppay"
+  username: "root"
+  password: "your_password_here"
+
+  # Connection pool settings
+  pool:
+    maximum-pool-size: 20
+    minimum-idle: 5
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+
+  # Advanced settings
+  properties:
+    useSSL: false
+    autoReconnect: true
+    characterEncoding: "utf8mb4"
+    useUnicode: true
+```
+
+### Chi tiết cấu hình MySQL
+
+| Trường | Mô tả | Mặc định |
+|--------|-------|----------|
+| `host` | MySQL server hostname | `"localhost"` |
+| `port` | MySQL server port | `3306` |
+| `database` | Tên database | `"simppay"` |
+| `username` | MySQL username | `"root"` |
+| `password` | MySQL password | `""` |
+| `maximum-pool-size` | Số connection tối đa | `20` |
+| `minimum-idle` | Số connection idle tối thiểu | `5` |
+| `useSSL` | Bật SSL connection | `false` |
+| `autoReconnect` | Tự động reconnect khi mất kết nối | `true` |
+| `characterEncoding` | Character encoding | `"utf8mb4"` |
+
+<Aside type="caution">
+  Đảm bảo database `simppay` đã được tạo trước khi khởi động plugin!
+</Aside>
+
+## Setup MySQL
+
+<Tabs>
+  <TabItem label="Tạo database">
+    Kết nối vào MySQL và tạo database:
+
+    ```sql
+    CREATE DATABASE simppay CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    ```
+  </TabItem>
+
+  <TabItem label="Tạo user">
+    Tạo user riêng cho SimpPay (khuyến nghị):
+
+    ```sql
+    CREATE USER 'simppay'@'localhost' IDENTIFIED BY 'strong_password_here';
+    GRANT ALL PRIVILEGES ON simppay.* TO 'simppay'@'localhost';
+    FLUSH PRIVILEGES;
+    ```
+
+    Sau đó cấu hình trong `database-config.yml`:
+
+    ```yaml
+    mysql:
+      username: "simppay"
+      password: "strong_password_here"
+    ```
+  </TabItem>
+
+  <TabItem label="Remote connection">
+    Nếu MySQL ở server khác:
+
+    ```sql
+    CREATE USER 'simppay'@'%' IDENTIFIED BY 'strong_password_here';
+    GRANT ALL PRIVILEGES ON simppay.* TO 'simppay'@'%';
+    FLUSH PRIVILEGES;
+    ```
+
+    Cấu hình:
+
+    ```yaml
+    mysql:
+      host: "mysql.example.com"
+      port: 3306
+    ```
+
+    <Aside type="caution">
+      Đảm bảo firewall cho phép kết nối từ Minecraft server đến MySQL server!
+    </Aside>
+  </TabItem>
+</Tabs>
+
+## Database Schema
+
+SimpPay tự động tạo các bảng sau:
+
+### sp_player
+
+Lưu thông tin người chơi:
+
+| Column | Type | Mô tả |
+|--------|------|-------|
+| `uuid` | VARCHAR(36) | UUID người chơi (PK) |
+| `username` | VARCHAR(16) | Username hiện tại |
+| `created_at` | TIMESTAMP | Thời gian tạo |
+
+### card_payment
+
+Lưu giao dịch thẻ cào:
+
+| Column | Type | Mô tả |
+|--------|------|-------|
+| `id` | BIGINT | ID giao dịch (PK, auto) |
+| `player_uuid` | VARCHAR(36) | UUID người chơi |
+| `order_id` | VARCHAR(255) | Mã đơn hàng |
+| `card_type` | VARCHAR(50) | Loại thẻ (VIETTEL, ...) |
+| `serial` | VARCHAR(255) | Serial thẻ |
+| `pin` | VARCHAR(255) | PIN thẻ |
+| `amount` | BIGINT | Mệnh giá (VNĐ) |
+| `status` | VARCHAR(50) | Trạng thái |
+| `gateway` | VARCHAR(50) | Cổng thanh toán |
+| `created_at` | TIMESTAMP | Thời gian tạo |
+
+### banking_payment
+
+Lưu giao dịch QR banking:
+
+| Column | Type | Mô tả |
+|--------|------|-------|
+| `id` | BIGINT | ID giao dịch (PK, auto) |
+| `player_uuid` | VARCHAR(36) | UUID người chơi |
+| `order_id` | VARCHAR(255) | Mã đơn hàng |
+| `amount` | BIGINT | Số tiền (VNĐ) |
+| `status` | VARCHAR(50) | Trạng thái |
+| `gateway` | VARCHAR(50) | Cổng thanh toán |
+| `bank_name` | VARCHAR(100) | Tên ngân hàng |
+| `created_at` | TIMESTAMP | Thời gian tạo |
+
+### player_data
+
+Lưu tổng nạp theo kỳ:
+
+| Column | Type | Mô tả |
+|--------|------|-------|
+| `id` | BIGINT | ID (PK, auto) |
+| `player_uuid` | VARCHAR(36) | UUID người chơi |
+| `period` | VARCHAR(20) | Kỳ (DAILY/WEEKLY/...) |
+| `total_amount` | BIGINT | Tổng nạp (VNĐ) |
+| `card_amount` | BIGINT | Tổng nạp thẻ |
+| `bank_amount` | BIGINT | Tổng nạp bank |
+| `period_start` | TIMESTAMP | Đầu kỳ |
+| `updated_at` | TIMESTAMP | Cập nhật lần cuối |
+
+### player_streak_payment
+
+Lưu streak nạp liên tiếp:
+
+| Column | Type | Mô tả |
+|--------|------|-------|
+| `player_uuid` | VARCHAR(36) | UUID người chơi (PK) |
+| `current_streak` | INT | Streak hiện tại |
+| `best_streak` | INT | Streak tốt nhất |
+| `last_payment_date` | DATE | Ngày nạp cuối |
+
+### milestone_completion
+
+Lưu milestone đã hoàn thành:
+
+| Column | Type | Mô tả |
+|--------|------|-------|
+| `id` | BIGINT | ID (PK, auto) |
+| `player_uuid` | VARCHAR(36) | UUID người chơi (NULL = server) |
+| `milestone_name` | VARCHAR(255) | Tên milestone |
+| `milestone_type` | VARCHAR(20) | Loại (PLAYER/SERVER) |
+| `period` | VARCHAR(20) | Kỳ (DAILY/WEEKLY/...) |
+| `completed_at` | TIMESTAMP | Thời gian hoàn thành |
+
+### leaderboard_cache
+
+Cache bảng xếp hạng:
+
+| Column | Type | Mô tả |
+|--------|------|-------|
+| `id` | BIGINT | ID (PK, auto) |
+| `period` | VARCHAR(20) | Kỳ (DAILY/WEEKLY/...) |
+| `rank` | INT | Hạng |
+| `player_uuid` | VARCHAR(36) | UUID người chơi |
+| `player_name` | VARCHAR(16) | Tên người chơi |
+| `amount` | BIGINT | Tổng nạp |
+| `cached_at` | TIMESTAMP | Thời gian cache |
+
+## Connection Pooling
+
+SimpPay sử dụng HikariCP cho connection pooling. Tối ưu settings:
+
+### Server nhỏ (< 50 players)
+
+```yaml
+pool:
+  maximum-pool-size: 10
+  minimum-idle: 2
+```
+
+### Server trung bình (50-200 players)
+
+```yaml
+pool:
+  maximum-pool-size: 20
+  minimum-idle: 5
+```
+
+### Server lớn (> 200 players)
+
+```yaml
+pool:
+  maximum-pool-size: 50
+  minimum-idle: 10
+```
+
+<Aside type="tip">
+  Công thức ước lượng: `maximum-pool-size = (số players / 10) + 10`
+</Aside>
+
+## Backup & Restore
+
+### Backup H2
+
+```bash
+# Copy file database
+cp plugins/SimpPay/database.mv.db backups/database-$(date +%Y%m%d).mv.db
+```
+
+### Backup MySQL
+
+```bash
+# Dump database
+mysqldump -u simppay -p simppay > backups/simppay-$(date +%Y%m%d).sql
+```
+
+### Restore MySQL
+
+```bash
+# Restore từ backup
+mysql -u simppay -p simppay < backups/simppay-20260214.sql
+```
+
+## Migration H2 → MySQL
+
+1. **Export data từ H2**
+
+   Dùng tool như [H2 Console](http://www.h2database.com/html/tutorial.html#console_app) để export sang SQL.
+
+2. **Import vào MySQL**
+
+   ```bash
+   mysql -u simppay -p simppay < h2-export.sql
+   ```
+
+3. **Đổi config**
+
+   Sửa `database-config.yml`:
+   ```yaml
+   type: "MYSQL"
+   ```
+
+4. **Restart server**
+
+## Troubleshooting
+
+### Connection timeout
+
+<Aside type="caution">
+  **Lỗi**: `Connection timeout after 30000ms`
+
+  **Giải pháp**:
+  - Kiểm tra MySQL server đang chạy
+  - Xác minh host/port/credentials đúng
+  - Kiểm tra firewall không chặn port 3306
+  - Tăng `connection-timeout` trong config
+</Aside>
+
+### Too many connections
+
+<Aside type="caution">
+  **Lỗi**: `Too many connections`
+
+  **Giải pháp**:
+  - Giảm `maximum-pool-size` trong config
+  - Tăng `max_connections` trong MySQL:
+    ```sql
+    SET GLOBAL max_connections = 500;
+    ```
+</Aside>
+
+### Character encoding issues
+
+<Aside type="caution">
+  **Lỗi**: Tên người chơi hiển thị sai ký tự
+
+  **Giải pháp**:
+  - Đảm bảo database dùng `utf8mb4`:
+    ```sql
+    ALTER DATABASE simppay CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    ```
+  - Xác minh `characterEncoding: "utf8mb4"` trong config
+</Aside>
+
+## Xem thêm
+
+- [HikariCP Configuration](https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby)
+- [MySQL Performance Tuning](https://dev.mysql.com/doc/refman/8.0/en/optimization.html)
+- [ORMLite Documentation](https://ormlite.com/javadoc/ormlite-core/doc-files/ormlite.html)

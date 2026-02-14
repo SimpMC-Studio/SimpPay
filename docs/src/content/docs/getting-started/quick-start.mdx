@@ -1,0 +1,329 @@
+---
+title: Bắt đầu nhanh
+description: Thiết lập cổng thanh toán đầu tiên trong 5 phút
+---
+
+import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+Hướng dẫn này sẽ giúp bạn thiết lập cổng thanh toán đầu tiên và nhận thanh toán đầu tiên trong vòng 5 phút.
+
+## Chọn cổng thanh toán
+
+<Tabs>
+  <TabItem label="QR Banking (Khuyến nghị)">
+    **PayOS** - Dễ setup nhất, phù hợp cho người mới bắt đầu
+
+    - ✅ Không cần webhook server
+    - ✅ QR code tự động
+    - ✅ Hỗ trợ tất cả ngân hàng Việt Nam
+    - ⚠️ Cần đăng ký tài khoản PayOS
+
+  </TabItem>
+
+  <TabItem label="Thẻ cào">
+    **TheSieuToc** - Cổng thẻ cào phổ biến nhất
+
+    - ✅ Hỗ trợ Viettel, Mobifone, Vinaphone
+    - ✅ Tỷ lệ chiết khấu tốt
+    - ✅ API ổn định
+    - ⚠️ Cần đăng ký tài khoản TheSieuToc
+
+  </TabItem>
+
+  <TabItem label="Sepay (Nâng cao)">
+    **Sepay** - Webhook thời gian thực
+
+    - ✅ Xác nhận thanh toán tức thì
+    - ✅ Không cần polling
+    - ⚠️ Cần mở port cho webhook
+    - ⚠️ Cần domain/IP public
+
+  </TabItem>
+</Tabs>
+
+## Setup PayOS (Khuyến nghị)
+
+<Steps>
+
+1. **Đăng ký tài khoản PayOS**
+   - Truy cập [https://my.payos.vn](https://my.payos.vn)
+   - Đăng ký tài khoản
+   - Xác minh thông tin và liên kết ngân hàng theo hướng dẫn của PayOS
+
+2. **Tạo kênh thanh toán và lấy thông tin API**
+
+   Vào Kênh thanh toán → Tạo kênh thanh toán → Chọn "Website" và điền thông tin cần thiết.
+   Bạn sẽ cần chọn 2 tài khoản phụ và chính ở bước này.
+
+   Vào Kênh thanh toán vừa tạo và copy:
+   - **Client ID**: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+   - **API Key**: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+   - **Checksum Key**: `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+3. **Cấu hình plugin**
+
+   Mở `plugins/SimpPay/banking/payos-config.yml`:
+
+   ```yaml
+   # PayOS Configuration
+   enabled: true
+
+   # API Credentials từ PayOS Dashboard
+   client-id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+   api-key: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+   checksum-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+   # Timeout cho polling (giây)
+   timeout: 300
+
+   # Interval giữa các lần check (giây)
+   interval: 5
+
+   # Số tiền tối thiểu (VNĐ)
+   min-amount: 10000
+
+   # Số tiền tối đa (VNĐ)
+   max-amount: 50000000
+   ```
+
+4. **Reload plugin**
+
+   Trong game hoặc console:
+
+   ```
+   /simppayadmin reload
+   ```
+
+5. **Test thanh toán**
+
+   Trong game:
+
+   ```
+   /bank 10000
+   ```
+
+   Bạn sẽ nhận được QR code để quét và thanh toán.
+
+</Steps>
+
+<Aside type="tip">
+  PayOS tự động tạo QR code và theo dõi thanh toán. Bạn không cần cấu hình thêm
+  gì!
+</Aside>
+
+## Setup TheSieuToc (Thẻ cào)
+
+<Steps>
+
+1. **Đăng ký tài khoản**
+   - Truy cập [https://thesieutoc.net](https://thesieutoc.net)
+   - Đăng ký tài khoản
+
+2. **Lấy thông tin API**
+
+   Vào Tích hợp API:
+   - **APIKey**: `xxxxx`
+   - **APISecret**: `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+3. **Cấu hình plugin**
+
+   Mở `plugins/SimpPay/card/thesieutoc-config.yml`:
+
+   ```yaml
+   # TheSieuToc Configuration
+   enabled: true
+
+   # Partner credentials từ TheSieuToc
+   partner-id: "xxxxx"
+   partner-key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+   # Timeout cho polling (giây)
+   timeout: 300
+
+   # Interval giữa các lần check (giây)
+   interval: 10
+
+   # Loại thẻ được hỗ trợ
+   supported-card-types:
+     - VIETTEL
+     - MOBIFONE
+     - VINAPHONE
+
+   # Mệnh giá được hỗ trợ (VNĐ)
+   supported-amounts:
+     - 10000
+     - 20000
+     - 50000
+     - 100000
+     - 200000
+     - 500000
+     - 1000000
+   ```
+
+4. **Reload plugin**
+
+   ```
+   /simppayadmin reload
+   ```
+
+5. **Test nạp thẻ**
+
+   Trong game:
+
+   ```
+   /napthe
+   ```
+
+   Chọn loại thẻ → Chọn mệnh giá → Nhập serial và PIN.
+
+</Steps>
+
+## Cấu hình hệ thống xu
+
+<Steps>
+
+1. **Chọn coins provider**
+
+   Mở `plugins/SimpPay/coins-config.yml`:
+
+   ```yaml
+   # Coins Configuration
+
+   # Provider: PLAYERPOINTS, COINSENGINE
+   coins-provider: "PLAYERPOINTS"
+
+   # Tỷ lệ quy đổi cơ bản (VNĐ → Coins)
+   # 1000 VNĐ = 1 coin
+   base-card-rate: 1
+   base-bank-rate: 1
+
+   # Tỷ lệ thưởng thêm (%)
+   extra-card-rate: 0
+   extra-bank-rate: 0
+
+   # Tỷ lệ khuyến mãi (%)
+   promo-rate: 0
+
+   # Ngày kết thúc khuyến mãi (dd/MM/yyyy HH:mm)
+   end-promo: "31/12/2026 23:59"
+   ```
+
+2. **Cài đặt PlayerPoints**
+
+   Nếu chọn `PLAYERPOINTS`:
+   - Tải [PlayerPoints](https://www.spigotmc.org/resources/playerpoints.80745/)
+   - Đặt vào `plugins/` và khởi động lại
+
+3. **Test quy đổi**
+
+   Với config trên:
+   - Nạp 50,000 VNĐ → Nhận 50 coins
+   - Nạp 100,000 VNĐ → Nhận 100 coins
+
+</Steps>
+
+<Aside type="note">
+  **Công thức tính coins:** ``` Tổng coin = (Tiền Nạp/1000 × baseRate) +
+  (Tiền Nạp/1000 × extraRate) + (Tiền Nạp/1000 × promoRate) ```
+</Aside>
+
+## Kiểm tra hoạt động
+
+<Steps>
+
+1. **Test thanh toán thật**
+   - Nạp một số tiền nhỏ (10k-20k)
+   - Kiểm tra coins được cộng đúng
+   - Xem lịch sử: `/lichsunapthe`
+
+2. **Kiểm tra database**
+
+   Xem bảng `card_payment` hoặc `banking_payment`:
+
+   ```sql
+   SELECT * FROM banking_payment ORDER BY created_at DESC LIMIT 5;
+   ```
+
+3. **Kiểm tra leaderboard**
+
+   Nếu có PlaceholderAPI:
+
+   ```
+   /papi parse me %simppay_leaderboard_all_1_name%
+   ```
+
+</Steps>
+
+## Troubleshooting
+
+### QR code không hiển thị
+
+<Aside type="caution">
+  **Nguyên nhân**: API credentials sai hoặc PayOS account chưa active
+
+**Giải pháp**:
+
+- Kiểm tra lại Client ID, API Key, Checksum Key
+- Bật debug mode trong `main-config.yml` để xem log chi tiết
+</Aside>
+
+### Thẻ cào bị từ chối
+
+<Aside type="caution">
+  **Nguyên nhân**: Thẻ đã sử dụng, sai mệnh giá, hoặc sai serial/PIN
+
+**Giải pháp**:
+
+- Kiểm tra thẻ chưa sử dụng
+- Nhập đúng serial và PIN (không có khoảng trắng)
+- Chọn đúng loại thẻ và mệnh giá
+</Aside>
+
+### Coins không được cộng
+
+<Aside type="caution">
+  **Nguyên nhân**: Coins provider chưa cài hoặc config sai
+
+**Giải pháp**:
+
+- Kiểm tra PlayerPoints/CoinsEngine đã cài
+- Xác minh `coins-provider` trong `coins-config.yml`
+- Kiểm tra console có lỗi khi award coins
+</Aside>
+
+## Bật debug mode
+
+Để xem log chi tiết, mở `plugins/SimpPay/main-config.yml`:
+
+```yaml
+# Main Configuration
+debug: true # Bật debug logging
+```
+
+Reload plugin và kiểm tra console để thấy:
+
+- API requests/responses
+- Payment status polling
+- Event firing sequence
+- Database queries
+
+## Bước tiếp theo
+
+<Tabs>
+  <TabItem label="Thêm tính năng">
+    - [Thiết lập milestones](/features/milestones/)
+    - [Cấu hình streak rewards](/features/streaks/)
+    - [Thêm nạp lần đầu](/features/naplandau/)
+</TabItem>
+
+<TabItem label="Tùy chỉnh">
+  - [Tùy chỉnh tin nhắn](/configuration/messages/) - [Tùy chỉnh menu
+  GUI](/guides/customizing-menus/) - [Thêm placeholders](/placeholders/index/)
+</TabItem>
+
+  <TabItem label="Thêm cổng">
+    - [Thêm Sepay webhook](/payment-gateways/banking/sepay/)
+    - [Thêm Card2K](/payment-gateways/card/card2k/)
+    - [Thêm Web2M](/payment-gateways/banking/web2m/)
+  </TabItem>
+</Tabs>

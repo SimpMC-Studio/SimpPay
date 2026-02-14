@@ -1,0 +1,400 @@
+---
+title: Menu & GUI
+description: Hệ thống menu InvUI và AnvilGUI
+---
+
+import { Steps, FileTree } from '@astrojs/starlight/components';
+
+SimpPay sử dụng InvUI cho chest GUI và AnvilGUI cho text input.
+
+## Menu flow
+
+<Steps>
+
+1. **Card List View**
+
+   `/napthe` → Hiển thị danh sách loại thẻ (Viettel, Mobifone, Vinaphone)
+
+2. **Card Price View**
+
+   Click loại thẻ → Hiển thị danh sách mệnh giá (10k, 20k, 50k, ...)
+
+3. **Card Serial Input**
+
+   Click mệnh giá → AnvilGUI nhập serial thẻ
+
+4. **Card PIN Input**
+
+   Nhập serial → AnvilGUI nhập PIN thẻ
+
+5. **Payment Processing**
+
+   Nhập PIN → Gửi request đến gateway → Polling/webhook → Nhận kết quả
+
+</Steps>
+
+## Menu configs
+
+### Card List View
+
+File: `plugins/SimpPay/menus/card-list-view-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Card List View Configuration
+
+# Menu title
+title: "<gradient:green:aqua>Chọn loại thẻ</gradient>"
+
+# Menu size (rows)
+size: 3
+
+# Layout (9 chars per row)
+layout:
+  - "xxxxxxxxx"
+  - "xVxMxPxxx"
+  - "xxxxxxxxx"
+
+# Display items
+items:
+  x:
+    material: "BLACK_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+
+  V:
+    material: "RED_WOOL"
+    name: "<red><bold>VIETTEL</bold></red>"
+    lore:
+      - ""
+      - "<gray>Click để chọn thẻ Viettel</gray>"
+      - ""
+    role: "VIETTEL"
+
+  M:
+    material: "BLUE_WOOL"
+    name: "<blue><bold>MOBIFONE</bold></blue>"
+    lore:
+      - ""
+      - "<gray>Click để chọn thẻ Mobifone</gray>"
+      - ""
+    role: "MOBIFONE"
+
+  P:
+    material: "PURPLE_WOOL"
+    name: "<light_purple><bold>VINAPHONE</bold></light_purple>"
+    lore:
+      - ""
+      - "<gray>Click để chọn thẻ Vinaphone</gray>"
+      - ""
+    role: "VINAPHONE"
+```
+
+### Card Price View
+
+File: `plugins/SimpPay/menus/card-price-view-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Card Price View Configuration
+
+title: "<gradient:green:aqua>Chọn mệnh giá</gradient>"
+size: 5
+
+layout:
+  - "xxxxxxxxx"
+  - "x1x2x3xxx"
+  - "x4x5x6xxx"
+  - "x7x8x9xxx"
+  - "xxxxxxxBx"
+
+items:
+  x:
+    material: "BLACK_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+
+  1:
+    material: "PAPER"
+    name: "<yellow>10,000đ</yellow>"
+    lore:
+      - ""
+      - "<gray>Click để nạp thẻ 10k</gray>"
+      - ""
+    role: "AMOUNT_10000"
+
+  2:
+    material: "PAPER"
+    name: "<yellow>20,000đ</yellow>"
+    lore:
+      - ""
+      - "<gray>Click để nạp thẻ 20k</gray>"
+      - ""
+    role: "AMOUNT_20000"
+
+  3:
+    material: "PAPER"
+    name: "<yellow>50,000đ</yellow>"
+    lore:
+      - ""
+      - "<gray>Click để nạp thẻ 50k</gray>"
+      - ""
+    role: "AMOUNT_50000"
+
+  4:
+    material: "PAPER"
+    name: "<yellow>100,000đ</yellow>"
+    lore:
+      - ""
+      - "<gray>Click để nạp thẻ 100k</gray>"
+      - ""
+    role: "AMOUNT_100000"
+
+  5:
+    material: "PAPER"
+    name: "<yellow>200,000đ</yellow>"
+    lore:
+      - ""
+      - "<gray>Click để nạp thẻ 200k</gray>"
+      - ""
+    role: "AMOUNT_200000"
+
+  6:
+    material: "PAPER"
+    name: "<yellow>500,000đ</yellow>"
+    lore:
+      - ""
+      - "<gray>Click để nạp thẻ 500k</gray>"
+      - ""
+    role: "AMOUNT_500000"
+
+  7:
+    material: "PAPER"
+    name: "<yellow>1,000,000đ</yellow>"
+    lore:
+      - ""
+      - "<gray>Click để nạp thẻ 1 triệu</gray>"
+      - ""
+    role: "AMOUNT_1000000"
+
+  B:
+    material: "ARROW"
+    name: "<red>Quay lại</red>"
+    lore: []
+    role: "BACK"
+```
+
+### Payment History View
+
+File: `plugins/SimpPay/menus/payment-history-view-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Payment History View Configuration
+
+title: "<gradient:green:aqua>Lịch sử nạp tiền</gradient>"
+size: 6
+
+layout:
+  - "xxxxxxxxx"
+  - "xxxxxxxxx"
+  - "xxxxxxxxx"
+  - "xxxxxxxxx"
+  - "xxxxxxxxx"
+  - "xxxPxNxxx"
+
+items:
+  x:
+    material: "BLACK_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+
+  P:
+    material: "ARROW"
+    name: "<yellow>Trang trước</yellow>"
+    lore: []
+    role: "PREV_PAGE"
+
+  N:
+    material: "ARROW"
+    name: "<yellow>Trang sau</yellow>"
+    lore: []
+    role: "NEXT_PAGE"
+```
+
+### Streak Menu View
+
+File: `plugins/SimpPay/menus/streak-menu-view-config.yml`
+
+```yaml
+# SimpPay @ 2026
+# Made by typical.smc
+
+# Streak Menu View Configuration
+
+title: "<gradient:red:yellow>🔥 Streak nạp liên tiếp</gradient>"
+size: 5
+
+layout:
+  - "xxxxxxxxx"
+  - "xxxCxBxxx"
+  - "xxxxxxxxx"
+  - "xMxMxMxxx"
+  - "xxxxxxxxx"
+
+items:
+  x:
+    material: "BLACK_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    role: "NONE"
+
+  C:
+    material: "FIRE_CHARGE"
+    name: "<gradient:red:yellow>Streak hiện tại</gradient>"
+    lore:
+      - ""
+      - "<yellow>{current_streak} ngày</yellow>"
+      - ""
+    role: "CURRENT_STREAK"
+
+  B:
+    material: "GOLDEN_APPLE"
+    name: "<gradient:gold:yellow>Best streak</gradient>"
+    lore:
+      - ""
+      - "<yellow>{best_streak} ngày</yellow>"
+      - ""
+    role: "BEST_STREAK"
+
+  M:
+    material: "DIAMOND"
+    name: "<aqua>Milestone {milestone_days} ngày</aqua>"
+    lore:
+      - ""
+      - "<gray>Phần thưởng:</gray>"
+      - "<yellow>{rewards}</yellow>"
+      - ""
+    role: "MILESTONE"
+```
+
+## Layout system
+
+Layout sử dụng grid 9x(rows):
+
+```
+Row 1: "xxxxxxxxx"  (9 chars)
+Row 2: "xVxMxPxxx"  (9 chars)
+Row 3: "xxxxxxxxx"  (9 chars)
+```
+
+Mỗi ký tự map đến một item trong `items` section.
+
+## DisplayItem structure
+
+```yaml
+material: "MATERIAL_NAME"    # Bukkit material name
+name: "<color>Name</color>"  # MiniMessage format
+lore:                        # List of lore lines
+  - "<gray>Line 1</gray>"
+  - "<yellow>Line 2</yellow>"
+role: "ROLE_TYPE"            # Item role (xem bên dưới)
+```
+
+## Role types
+
+| Role | Mô tả |
+|------|-------|
+| `NONE` | Không có action (decoration) |
+| `PREV_PAGE` | Nút trang trước (paged GUI) |
+| `NEXT_PAGE` | Nút trang sau (paged GUI) |
+| `BACK` | Nút quay lại menu trước |
+| `VIETTEL` / `MOBIFONE` / `VINAPHONE` | Chọn loại thẻ |
+| `AMOUNT_10000` / `AMOUNT_20000` / ... | Chọn mệnh giá |
+| `CURRENT_STREAK` / `BEST_STREAK` | Hiển thị streak info |
+| `MILESTONE` | Hiển thị milestone reward |
+
+## AnvilGUI
+
+AnvilGUI được dùng cho text input (serial, PIN):
+
+```java
+new AnvilGUI.Builder()
+    .title("Nhập serial thẻ")
+    .text("Serial...")
+    .plugin(plugin)
+    .onComplete((player, text) -> {
+        // Process serial input
+        return AnvilGUI.Response.close();
+    })
+    .open(player);
+```
+
+## File structure
+
+<FileTree>
+
+- plugins/SimpPay/menus/
+  - card-list-view-config.yml
+  - card-price-view-config.yml
+  - payment-history-view-config.yml
+  - streak-menu-view-config.yml
+
+</FileTree>
+
+## Customization
+
+### Thay đổi màu sắc
+
+```yaml
+V:
+  material: "RED_WOOL"
+  name: "<gradient:red:dark_red><bold>VIETTEL</bold></gradient>"
+```
+
+### Thay đổi layout
+
+```yaml
+layout:
+  - "xxxxxxxxx"
+  - "xxVxMxPxx"  # Center items
+  - "xxxxxxxxx"
+```
+
+### Thêm lore động
+
+```yaml
+lore:
+  - ""
+  - "<gray>Loại thẻ:</gray> <yellow>{card_type}</yellow>"
+  - "<gray>Mệnh giá:</gray> <yellow>{amount}đ</yellow>"
+  - ""
+  - "<green>Click để nạp</green>"
+```
+
+## Best practices
+
+1. **Dùng glass pane**: Tạo border đẹp với `BLACK_STAINED_GLASS_PANE`
+
+2. **MiniMessage**: Dùng gradient và color cho title/lore
+
+3. **Consistent layout**: Giữ layout nhất quán giữa các menu
+
+4. **Clear instructions**: Thêm lore hướng dẫn rõ ràng
+
+5. **Test trên client**: Một số material không hiển thị trên Bedrock
+
+## Xem thêm
+
+- [InvUI Documentation](https://github.com/NichtStudioCode/InvUI)
+- [AnvilGUI Documentation](https://github.com/WesJD/AnvilGUI)
+- [Cấu hình tin nhắn](/configuration/messages/)
