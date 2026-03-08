@@ -38,10 +38,6 @@ subprojects {
             url = "https://oss.sonatype.org/content/groups/public/"
         }
         maven {
-            name = "jitpack"
-            url = "https://jitpack.io"
-        }
-        maven {
             url = "https://repo.codemc.io/repository/maven-releases/"
         }
         maven {

@@ -15,7 +15,7 @@ public class MainConfig {
     @Configuration
     public static class BossBarSettings {
         @Comment("Tần suất cập nhật BossBar, tính theo game tick (20 tick = 1 giây). Giá trị nhỏ hơn = mượt hơn nhưng tốn hiệu năng hơn")
-        public int updateFrequencyTicks = 5;
+        public int updateFrequencyTicks = 1;
 
         @Comment("Thời gian hiển thị mỗi milestone trước khi chuyển sang milestone tiếp theo, tính theo giây")
         public int cycleDurationSeconds = 15;
