@@ -12,6 +12,7 @@ import org.simpmc.simppay.config.annotations.Folder;
 import org.simpmc.simppay.config.serializers.KeySerializer;
 import org.simpmc.simppay.config.serializers.SoundComponentSerializer;
 import org.simpmc.simppay.config.types.*;
+import org.simpmc.simppay.config.types.DiscordConfig;
 import org.simpmc.simppay.config.types.banking.PayosConfig;
 import org.simpmc.simppay.config.types.banking.SepayConfig;
 import org.simpmc.simppay.config.types.banking.Web2mConfig;
@@ -66,7 +67,8 @@ public class ConfigManager {
             Card2KConfig.class,
             Web2mConfig.class,
             ThesieureConfig.class,
-            Doithe1sConfig.class
+            Doithe1sConfig.class,
+            DiscordConfig.class
     );
     // holds file paths for each config type
     private final Map<Class<?>, Path> configPaths = new HashMap<>();

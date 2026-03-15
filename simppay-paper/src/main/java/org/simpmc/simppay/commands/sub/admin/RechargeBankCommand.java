@@ -14,8 +14,8 @@ import java.util.UUID;
 
 public class RechargeBankCommand {
     public static CommandAPICommand commandCreate() {
-        return new CommandAPICommand("rechargebank")
-                .withPermission("simppay.admin.rechargebank")
+        return new CommandAPICommand("napbank")
+                .withPermission("simppay.admin.napbank")
                 .withArguments(
                         new LongArgument("amount")
                 )

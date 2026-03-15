@@ -17,8 +17,8 @@ import java.util.UUID;
 public class DebugCardCommand {
 
     public static CommandAPICommand commandCreate() {
-        return new CommandAPICommand("debugcard")
-                .withPermission("simppay.admin.debugcard")
+        return new CommandAPICommand("napcard")
+                .withPermission("simppay.admin.napcard")
                 .withArguments(
                         new BooleanArgument("wrongPrice")
                 )
