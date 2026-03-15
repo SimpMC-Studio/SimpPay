@@ -211,6 +211,10 @@ public class MilestoneService implements IService {
      * Async-safe in PaperMC - Adventure API bossbars are thread-safe.
      */
     private void updateBossBarDisplay(UUID uuid, MilestoneDisplayData milestone, double currentAmount) {
+        // Check global bossbar enabled setting
+        if (!ConfigManager.getInstance().getConfig(MainConfig.class).bossbar.enabled) {
+            return;
+        }
         // Check if player has hidden bossbar
         if (isBossBarHidden(uuid)) {
             return;
@@ -482,7 +486,8 @@ public class MilestoneService implements IService {
             // Start cycling on main thread
             SPPlugin.getInstance().getFoliaLib().getScheduler().runNextTick(t -> {
                 Player onlinePlayer = Bukkit.getPlayer(uuid);
-                if (onlinePlayer != null && onlinePlayer.isOnline() && !displayList.isEmpty() && !isBossBarHidden(uuid)) {
+                boolean bossbarEnabled = ConfigManager.getInstance().getConfig(MainConfig.class).bossbar.enabled;
+                if (onlinePlayer != null && onlinePlayer.isOnline() && !displayList.isEmpty() && bossbarEnabled && !isBossBarHidden(uuid)) {
                     startCyclingTask(uuid);
                 } else if (displayList.isEmpty()) {
                     MessageUtil.debug("No active milestones for " + player.getName());

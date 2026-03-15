@@ -16,7 +16,7 @@ jar {
     enabled = false
 }
 group = 'org.simpmc'
-version = '1.3.6'
+version = '26.1'
 
 subprojects {
     apply plugin: 'java-library'

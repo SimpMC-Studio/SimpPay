@@ -14,6 +14,9 @@ public class MainConfig {
 
     @Configuration
     public static class BossBarSettings {
+        @Comment("Bật/tắt hiển thị BossBar milestone cho toàn server")
+        public boolean enabled = true;
+
         @Comment("Tần suất cập nhật BossBar, tính theo game tick (20 tick = 1 giây). Giá trị nhỏ hơn = mượt hơn nhưng tốn hiệu năng hơn")
         public int updateFrequencyTicks = 1;
 
