@@ -14,7 +14,8 @@ public class SimpPayAdminCommand {
                         DebugCardCommand.commandCreate(),
                         DeletePlayerCommand.commandCreate(),
                         ReloadServerMilestoneCommand.commandCreate(),
-                        ReloadPlayerMilestoneCommand.commandCreate()
+                        ReloadPlayerMilestoneCommand.commandCreate(),
+                        ImportCommand.commandCreate()
                 )
                 .register();
     }

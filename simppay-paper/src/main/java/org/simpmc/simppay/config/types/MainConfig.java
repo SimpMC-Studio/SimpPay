@@ -9,6 +9,9 @@ public class MainConfig {
     @Comment("Thời gian gọi API kiểm tra thẻ và giao dịch ngân hàng, tính theo giây")
     public int intervalApiCall = 5;
 
+    @Comment("Kiểm tra cập nhật tự động khi khởi động server")
+    public boolean updateChecker = true;
+
     @Comment("Cấu hình BossBar milestone")
     public BossBarSettings bossbar = new BossBarSettings();
 

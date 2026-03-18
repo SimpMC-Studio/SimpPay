@@ -52,6 +52,18 @@ public class MessageConfig {
 
     public String bossbarShown = "<color:#00ff00>Đã hiển thị BossBar milestone!";
 
+    public String importStarting = "<color:#E7EE88>Đang xử lý nhập dữ liệu, vui lòng chờ...";
+
+    public String importComplete = "<color:#B3E664>Nhập dữ liệu hoàn tất! Đã nhập: <white>{imported}<color:#B3E664>, Bỏ qua: <white>{skipped}<color:#B3E664>, Lỗi: <white>{failed}";
+
+    public String importError = "<color:#ff0000>  - {error}";
+
+    public String importMoreErrors = "<color:#ff0000>  ... và <white>{count}<color:#ff0000> lỗi khác. Xem console để biết thêm chi tiết.";
+
+    public String updateAvailable = "<color:#E7EE88>[SimpPay] Có bản cập nhật mới: v<white>{latest}<color:#E7EE88> (hiện tại: v<white>{current}<color:#E7EE88>). Tải về tại SpigotMC!";
+
+    public String updateChangelogLine = "<color:#aaaaaa>  - {line}";
+
     // TODO: store sound directly or have a toSound method
     public Map<PaymentStatus, SoundConfig> soundEffect = Map.of(
             PaymentStatus.SUCCESS, new SoundConfig(Key.key(Key.MINECRAFT_NAMESPACE, "entity.player.levelup"), 1, 1), // /playsound minecraft:entity.player.levelup ambient @a ~ ~ ~ 1 1

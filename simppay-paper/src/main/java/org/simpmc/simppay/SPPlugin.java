@@ -22,6 +22,7 @@ import org.simpmc.simppay.listener.internal.player.SuccessHandlingListener;
 import org.simpmc.simppay.listener.internal.player.database.SuccessDatabaseHandlingListener;
 import org.simpmc.simppay.service.*;
 import org.simpmc.simppay.service.DiscordService;
+import org.simpmc.simppay.service.UpdateCheckerService;
 import org.simpmc.simppay.service.cache.CacheDataService;
 import xyz.xenondevs.invui.InvUI;
 
@@ -101,6 +102,7 @@ public final class SPPlugin extends JavaPlugin {
         services.add(new MilestoneService());
         services.add(new WebhookService()); // Webhook server for Sepay
         services.add(new DiscordService());
+        services.add(new UpdateCheckerService());
 
         registerServices();
 

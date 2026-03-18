@@ -1,0 +1,8 @@
+{
+  "version": "26.2",
+  "changelog": [
+    "Thêm công cụ nhập dữ liệu từ Thesieutoc (MySQL + flatfile + credentials)",
+    "Thêm kiểm tra cập nhật tự động khi khởi động server",
+    "Sửa một số lỗi nhỏ"
+  ]
+}

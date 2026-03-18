@@ -1,7 +1,7 @@
 name: SimpPay
 version: '$version'
 main: org.simpmc.simppay.SPPlugin
-api-version: '1.21'
+api-version: '1.20'
 author: 'typical.smc'
 description: 'Payment solution for Vietnamese Minecraft Servers'
 website: 'https://github.com/SimpMC-Studio/SimpPay'
