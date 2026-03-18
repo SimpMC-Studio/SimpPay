@@ -22,7 +22,7 @@ public class PaymentService implements IService {
     private final ConcurrentHashMap<UUID, Payment> pollingPayments = new ConcurrentHashMap<>(); // payment id is key
     private final ConcurrentHashMap<UUID, Payment> payments = new ConcurrentHashMap<>(); // payment id is key
     private final ConcurrentHashMap<UUID, UUID> playerBankingSessionPayment = new ConcurrentHashMap<>(); // Store player uuid and payment id
-    private final ConcurrentHashMap<UUID, byte[]> playerBankQRCode = new ConcurrentHashMap<>(); // Store player uuid and VietQR map bytew
+    private final ConcurrentHashMap<UUID, byte[]> playerBankQRCode = new ConcurrentHashMap<>(); // Store player uuid and map bytes for resend
     private HandlerRegistry handlerRegistry;
 
     // use for storing data and pulling data out of the db later on
@@ -72,30 +72,31 @@ public class PaymentService implements IService {
 
     public void cancelBankPayment(UUID playerUUID) {
         UUID paymentID = playerBankingSessionPayment.get(playerUUID);
-        int retryCount = 0;
-        boolean cancelled = false;
         if (paymentID == null) {
             MessageUtil.debug("[PaymentService-Cancel] No payment found for " + playerUUID);
             return;
         }
-        while (retryCount < 5 && !cancelled) {
-            PaymentStatus status = handlerRegistry.getBankHandler().cancel(payments.get(paymentID)); // call to cancel payment
 
-            if (status == PaymentStatus.CANCELLED) {
-                MessageUtil.debug("[PaymentService-Cancel] " + payments.get(paymentID));
-                cancelled = true;
-            } else {
-                MessageUtil.debug("[PaymentService-Cancel] " + payments.get(paymentID) + " failed to cancel, retrying...");
-                retryCount++;
+        if (handlerRegistry.getBankHandler().supportsCancellation()) {
+            int retryCount = 0;
+            boolean cancelled = false;
+            while (retryCount < 5 && !cancelled) {
+                PaymentStatus status = handlerRegistry.getBankHandler().cancel(payments.get(paymentID));
+                if (status == PaymentStatus.CANCELLED) {
+                    MessageUtil.debug("[PaymentService-Cancel] " + payments.get(paymentID));
+                    cancelled = true;
+                } else {
+                    MessageUtil.debug("[PaymentService-Cancel] " + payments.get(paymentID) + " failed to cancel, retrying...");
+                    retryCount++;
+                }
+            }
+            if (!cancelled) {
+                SPPlugin.getInstance().getLogger().info("[PaymentService-Cancel] Max retries reached for " + payments.get(paymentID));
             }
         }
 
-        if (!cancelled) {
-            SPPlugin.getInstance().getLogger().info("[PaymentService-Cancel] Max retries reached for " + payments.get(paymentID));
-        }
-
-        payments.remove(paymentID); // remove payment from existing payment on the server
-        pollingPayments.remove(paymentID); // remove payment from polling payments
+        payments.remove(paymentID);
+        pollingPayments.remove(paymentID);
         playerBankingSessionPayment.remove(playerUUID);
         playerBankQRCode.remove(playerUUID);
     }

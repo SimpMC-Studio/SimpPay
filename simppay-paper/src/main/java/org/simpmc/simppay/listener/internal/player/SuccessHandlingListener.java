@@ -44,9 +44,8 @@ public class SuccessHandlingListener implements Listener {
             SPPlugin.getService(PaymentService.class).clearPlayerBankCache(event.getPlayerUUID());
             Player player = Bukkit.getPlayer(event.getPlayerUUID());
             if (player != null) {
-                player.updateInventory(); // update the fake qr map to normal item
+                player.updateInventory(); // restore hand slot after fake QR map
             }
-
         }
     }
 

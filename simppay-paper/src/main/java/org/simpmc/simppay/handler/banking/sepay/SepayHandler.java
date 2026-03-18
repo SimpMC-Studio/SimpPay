@@ -107,14 +107,6 @@ public class SepayHandler extends BankHandler {
         return new PaymentResult(PaymentStatus.PENDING, 0, null);
     }
 
-    @Override
-    public PaymentStatus cancel(Payment payment) {
-        // Sepay doesn't have a cancel API for manual transfers
-        // Just mark as cancelled locally
-        MessageUtil.debug("[Sepay-Cancel] Manual transfer cancelled for " + payment.getDetail().getRefID());
-        return PaymentStatus.CANCELLED;
-    }
-
     /**
      * Builds the remote QR image URL from qr.sepay.vn
      *

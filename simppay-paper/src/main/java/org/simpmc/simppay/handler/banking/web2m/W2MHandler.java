@@ -7,6 +7,10 @@ import org.simpmc.simppay.data.PaymentStatus;
 import org.simpmc.simppay.data.bank.web2m.BankType;
 import org.simpmc.simppay.event.PaymentBankPromptEvent;
 import org.simpmc.simppay.event.PaymentQueueSuccessEvent;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.simpmc.simppay.handler.BankHandler;
 import org.simpmc.simppay.handler.banking.data.BankingData;
 import org.simpmc.simppay.handler.banking.web2m.data.W2MReponse;
@@ -16,7 +20,9 @@ import org.simpmc.simppay.model.detail.PaymentDetail;
 import org.simpmc.simppay.util.GsonUtil;
 import org.simpmc.simppay.util.MessageUtil;
 
+import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class W2MHandler extends BankHandler {
@@ -136,8 +142,21 @@ public class W2MHandler extends BankHandler {
         );
     }
 
-    @Override
-    public PaymentStatus cancel(Payment payment) {
-        return PaymentStatus.CANCELLED;
+    private CompletableFuture<String> get(String url) {
+        return CompletableFuture.supplyAsync(() -> {
+            OkHttpClient client = new OkHttpClient.Builder().build();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .get()
+                    .build();
+            Call call = client.newCall(request);
+            try {
+                Response response = call.execute();
+                return response.body().string();
+            } catch (IOException e) {
+                MessageUtil.warn("[W2M] GET request failed for URL: " + url + " - " + e.getMessage());
+                throw new RuntimeException(e);
+            }
+        });
     }
 }

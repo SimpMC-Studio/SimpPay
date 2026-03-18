@@ -64,11 +64,13 @@ public class BankingCommand {
 
                     PaymentStatus status = SPPlugin.getService(PaymentService.class).sendBank(payment);
                     if (status == PaymentStatus.EXIST) {
+                        MessageUtil.warn("[BankingCommand] Payment UUID collision for player " + player.getName() + " (amount=" + args.get("amount") + ")");
                         MessageUtil.sendMessage(player, messageConfig.unknownErrror);
                         SoundUtil.sendSound(player, messageConfig.soundEffect.get(PaymentStatus.PENDING).toSound());
                         return;
                     }
                     if (status == PaymentStatus.FAILED) {
+                        MessageUtil.warn("[BankingCommand] Bank payment failed for player " + player.getName() + " (amount=" + args.get("amount") + ") - check handler logs above for details");
                         MessageUtil.sendMessage(player, messageConfig.failedCard);
                         SoundUtil.sendSound(player, messageConfig.soundEffect.get(PaymentStatus.FAILED).toSound());
                         return;

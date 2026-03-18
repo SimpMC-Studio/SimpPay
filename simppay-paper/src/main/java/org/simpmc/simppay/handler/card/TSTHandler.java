@@ -14,7 +14,7 @@ import org.simpmc.simppay.model.Payment;
 import org.simpmc.simppay.model.PaymentResult;
 import org.simpmc.simppay.model.detail.CardDetail;
 import org.simpmc.simppay.model.detail.PaymentDetail;
-import org.simpmc.simppay.util.HashUtils;
+import org.simpmc.simppay.util.HashUtil;
 import org.simpmc.simppay.util.HttpUtils;
 import org.simpmc.simppay.util.MessageUtil;
 
@@ -70,7 +70,7 @@ public class TSTHandler extends CardHandler {
                 return null;
             }
             String base = TST_CREATE_URL + "?APIkey={0}&APIsecret={1}&mathe={2}&seri={3}&type={4}&menhgia={5}";
-            String rnd = HashUtils.randomMD5();
+            String rnd = HashUtil.randomMD5();
             String url = MessageFormat.format(base,
                     config.apiKey,
                     config.secretKey,
@@ -137,11 +137,6 @@ public class TSTHandler extends CardHandler {
             );
         }
         return new PaymentResult(paymentStatus, 0, json.get("msg").getAsString());
-    }
-
-    @Override
-    public PaymentStatus cancel(Payment payment) {
-        throw new UnsupportedOperationException("Cannot cancel card payment");
     }
 
     @Override

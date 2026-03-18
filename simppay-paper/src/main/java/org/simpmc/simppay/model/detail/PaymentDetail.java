@@ -8,8 +8,4 @@ public interface PaymentDetail {
     String getRefID();
 
     void setRefID(String refID);
-
-    String getDescription();
-
-    String getQRCode();
 }

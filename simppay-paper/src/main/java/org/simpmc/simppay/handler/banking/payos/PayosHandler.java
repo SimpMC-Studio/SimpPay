@@ -21,7 +21,7 @@ import org.simpmc.simppay.model.detail.BankingDetail;
 import org.simpmc.simppay.model.detail.PaymentDetail;
 import org.simpmc.simppay.service.OrderIDService;
 import org.simpmc.simppay.util.GsonUtil;
-import org.simpmc.simppay.util.HashUtils;
+import org.simpmc.simppay.util.HashUtil;
 import org.simpmc.simppay.util.MessageUtil;
 
 import java.io.BufferedReader;
@@ -51,11 +51,11 @@ public class PayosHandler extends BankHandler {
             return PaymentStatus.FAILED;
         }
         if (request == null || request.getData() == null) {
-            MessageUtil.debug("[PayOS-ProcessPayment] Request is null");
+            MessageUtil.warn("[PayOS-ProcessPayment] Request returned null - check API key/client ID configuration");
             return PaymentStatus.FAILED;
         }
         if (PayosAdapter.getStatus(request.getData().getStatus()) == PaymentStatus.FAILED) {
-            MessageUtil.debug("[PayOS-ProcessPayment]" + request);
+            MessageUtil.warn("[PayOS-ProcessPayment] Payment creation rejected by PayOS: " + request);
             return PaymentStatus.FAILED;
         }
         // TODO: call PaymentBankPromptEvent with payment link and qrcode string
@@ -79,7 +79,7 @@ public class PayosHandler extends BankHandler {
             Bukkit.getPluginManager().callEvent(new PaymentBankPromptEvent(bankData));
             return PaymentStatus.PENDING;
         }
-        MessageUtil.debug("[PayOS-ProcessPayment]" + request);
+        MessageUtil.warn("[PayOS-ProcessPayment] Unexpected status from PayOS: " + request);
         // default to failed if other status codes
         return PaymentStatus.FAILED;
     }
@@ -106,6 +106,11 @@ public class PayosHandler extends BankHandler {
         MessageUtil.debug("[PayOS-GetTransactionStatus]" + res);
         PaymentStatus paymentStatus = PayosAdapter.getStatus(res.getData().getStatus());
         return new PaymentResult(paymentStatus, (int) res.getData().getAmount(), res.getData().getCheckoutUrl());
+    }
+
+    @Override
+    public boolean supportsCancellation() {
+        return true;
     }
 
     @Override
@@ -172,7 +177,7 @@ public class PayosHandler extends BankHandler {
             BankingConfig bankConfig = ConfigManager.getInstance().getConfig(BankingConfig.class);
 
             if (config.apiKey == null || config.clientId == null) {
-                MessageUtil.info("[PayOS-RequestTransaction] API key or secret key is not set");
+                MessageUtil.warn("[PayOS-RequestTransaction] API key or client ID is not configured in payos-config.yml");
                 return null;
             }
             String base = "https://api-merchant.payos.vn/v2/payment-requests";
@@ -184,7 +189,7 @@ public class PayosHandler extends BankHandler {
                         "payos",
                         orderid,
                         RETURN_CANCEL_URl);
-                String hash = HashUtils.hmacSha256Hex(config.checksumKey, valuetoBeHashed);
+                String hash = HashUtil.hmacSha256Hex(config.checksumKey, valuetoBeHashed);
                 MessageUtil.debug("[PayOS-RequestTransaction] Hash: " + hash);
                 PayosPayment payosPayment = PayosPayment.builder()
                         .amount(bank.getAmount())

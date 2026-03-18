@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.MessageConfig;
+import org.simpmc.simppay.listener.internal.player.BankPromptListener;
 import org.simpmc.simppay.service.PaymentService;
 import org.simpmc.simppay.util.MessageUtil;
 
@@ -23,7 +24,8 @@ public class CancelCommand {
         } else {
             MessageUtil.sendMessage(player, messageConfig.cancelBanking);
             SPPlugin.getService(PaymentService.class).cancelBankPayment(player.getUniqueId());
-            player.updateInventory(); // remove qr map
+            BankPromptListener.removeItemFrame(player.getUniqueId());
+            player.updateInventory(); // restore hand slot after fake QR map
         }
     }
 }

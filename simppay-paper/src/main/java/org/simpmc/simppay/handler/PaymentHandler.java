@@ -11,5 +11,11 @@ public interface PaymentHandler {
 
     PaymentResult getTransactionResult(PaymentDetail detail);
 
-    PaymentStatus cancel(Payment payment);
+    default PaymentStatus cancel(Payment payment) {
+        return PaymentStatus.CANCELLED;
+    }
+
+    default boolean supportsCancellation() {
+        return false;
+    }
 }

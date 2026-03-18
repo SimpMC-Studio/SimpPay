@@ -33,14 +33,4 @@ public class CardDetail implements PaymentDetail {
     public String getRefID() {
         return refID;
     }
-
-    @Override
-    public String getDescription() {
-        return null;
-    }
-
-    @Override
-    public String getQRCode() {
-        return null;
-    }
 }

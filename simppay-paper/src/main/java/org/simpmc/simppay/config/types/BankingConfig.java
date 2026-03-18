@@ -17,6 +17,9 @@ public class BankingConfig {
     @Comment("Số tiền nạp chuyển khoản tối thiểu")
     public int minBanking = 10000;
 
-    @Comment("Hiện QR code trên tay trái của người chơi")
+    @Comment("Hiện QR code trên tay trái của người chơi thay vì tay phải")
     public boolean showQrOnLeftHand = false;
+
+    @Comment("Hiện QR code trên item frame ảo trước mặt người chơi thay vì trên tay")
+    public boolean showQrAsItemFrame = false;
 }

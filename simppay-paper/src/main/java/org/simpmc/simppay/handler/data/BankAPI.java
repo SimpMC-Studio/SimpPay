@@ -1,19 +1,21 @@
 package org.simpmc.simppay.handler.data;
 
-import org.simpmc.simppay.handler.BankHandler;
+import org.simpmc.simppay.handler.PaymentHandler;
 import org.simpmc.simppay.handler.banking.payos.PayosHandler;
 import org.simpmc.simppay.handler.banking.sepay.SepayHandler;
 import org.simpmc.simppay.handler.banking.web2m.W2MHandler;
 
+import java.util.function.Supplier;
+
 public enum BankAPI {
-    PAYOS(PayosHandler.class),
-    WEB2M(W2MHandler.class),
-    SEPAY(SepayHandler.class); // Phase 4: Sepay integration
+    PAYOS(PayosHandler::new),
+    WEB2M(W2MHandler::new),
+    SEPAY(SepayHandler::new);
 
-    public final Class<? extends BankHandler> handlerClass;
+    public final Supplier<PaymentHandler> handlerFactory;
 
-    BankAPI(Class<? extends BankHandler> handlerClass) {
-        this.handlerClass = handlerClass;
+    BankAPI(Supplier<PaymentHandler> handlerFactory) {
+        this.handlerFactory = handlerFactory;
     }
 
     public static String getValues() {
