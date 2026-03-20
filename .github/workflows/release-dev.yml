@@ -1,8 +1,7 @@
 name: Release Dev
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   release-dev:
