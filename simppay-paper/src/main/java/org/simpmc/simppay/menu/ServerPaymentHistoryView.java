@@ -1,107 +1,59 @@
 package org.simpmc.simppay.menu;
 
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.data.menu.DisplayItem;
-import org.simpmc.simppay.config.types.data.menu.RoleType;
 import org.simpmc.simppay.config.types.menu.ServerPaymentHistoryMenuConfig;
 import org.simpmc.simppay.data.PaymentType;
 import org.simpmc.simppay.database.dto.PaymentRecord;
 import org.simpmc.simppay.service.DatabaseService;
 import org.simpmc.simppay.util.CalendarUtil;
-import org.simpmc.simppay.util.MessageUtil;
-import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.gui.PagedGui;
 import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.builder.ItemBuilder;
 import xyz.xenondevs.invui.item.impl.SimpleItem;
-import xyz.xenondevs.invui.item.impl.controlitem.PageItem;
 import xyz.xenondevs.invui.window.Window;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Phase 6: InvUI Migration - Server Payment History View
- * <p>
  * Displays the entire server's payment history with pagination.
  */
 public class ServerPaymentHistoryView {
-    private static final MiniMessage MM = MiniMessage.miniMessage();
 
-    /**
-     * Opens the server payment history menu for a player.
-     *
-     * @param player Player to show menu to
-     */
     public static void openMenu(Player player) {
         ServerPaymentHistoryMenuConfig config = ConfigManager.getInstance().getConfig(ServerPaymentHistoryMenuConfig.class);
 
-        // Async load payment records
         CompletableFuture<List<PaymentRecord>> recordsFuture = fetchPaymentRecordsAsync();
 
-        // Create loading placeholder
         Item loadingItem = new SimpleItem(
                 new ItemBuilder(org.bukkit.Material.PAPER)
-                        .setDisplayName(mm("<gray>Loading server payment history..."))
+                        .setDisplayName(MenuBuilder.mm("<gray>Loading server payment history..."))
         );
 
-        // Build GUI structure first (will be populated when data loads)
         String[] layout = config.layout.toArray(new String[0]);
         List<Item> paymentItems = new ArrayList<>();
-        paymentItems.add(loadingItem); // Temporary loading item
+        paymentItems.add(loadingItem);
 
-        PagedGui.Builder<Item> builder = PagedGui.items()
-                .setStructure(layout)
-                .addIngredient('O', xyz.xenondevs.invui.gui.structure.Markers.CONTENT_LIST_SLOT_HORIZONTAL)
-                .setContent(paymentItems);
+        PagedGui<Item> gui = MenuBuilder.buildPagedGui(layout, config.displayItems, paymentItems, player);
 
-        // Add display items (borders, navigation buttons)
-        Map<Character, DisplayItem> displayItems = config.displayItems;
-        for (Map.Entry<Character, DisplayItem> entry : displayItems.entrySet()) {
-            DisplayItem item = entry.getValue();
-
-            if (item.getRole() == RoleType.PREV_PAGE) {
-                builder.addIngredient(entry.getKey(), new PageItem(false) {
-                    @Override
-                    public xyz.xenondevs.invui.item.ItemProvider getItemProvider(PagedGui<?> gui) {
-                        return new xyz.xenondevs.invui.item.ItemWrapper(item.getItemStack(player));
-                    }
-                });
-            } else if (item.getRole() == RoleType.NEXT_PAGE) {
-                builder.addIngredient(entry.getKey(), new PageItem(true) {
-                    @Override
-                    public xyz.xenondevs.invui.item.ItemProvider getItemProvider(PagedGui<?> gui) {
-                        return new xyz.xenondevs.invui.item.ItemWrapper(item.getItemStack(player));
-                    }
-                });
-            } else {
-                builder.addIngredient(entry.getKey(), item.getItemStack(player));
-            }
-        }
-
-        PagedGui<Item> gui = builder.build();
-
-        // Open window
         Window window = Window.single()
                 .setViewer(player)
-                .setTitle(mm(config.title))
+                .setTitle(MenuBuilder.mm(config.title))
                 .setGui(gui)
                 .build();
         window.open();
 
-        // Load data asynchronously and update GUI
         recordsFuture.thenAccept(records -> {
             paymentItems.clear();
 
             if (records.isEmpty()) {
                 paymentItems.add(new SimpleItem(
                         new ItemBuilder(org.bukkit.Material.BARRIER)
-                                .setDisplayName(mm("<red>No payment history found"))
+                                .setDisplayName(MenuBuilder.mm("<red>No payment history found"))
                 ));
             } else {
                 for (PaymentRecord record : records) {
@@ -109,7 +61,6 @@ public class ServerPaymentHistoryView {
                 }
             }
 
-            // Force GUI refresh on main thread
             SPPlugin.getInstance().getFoliaLib().getScheduler().runAtEntity(player, task -> {
                 if (window.isOpen()) {
                     gui.setContent(paymentItems);
@@ -118,9 +69,6 @@ public class ServerPaymentHistoryView {
         });
     }
 
-    /**
-     * Creates a payment item for a PaymentRecord.
-     */
     private static Item createPaymentItem(Player player, PaymentRecord record, ServerPaymentHistoryMenuConfig config) {
         DisplayItem itemConfig;
         List<String> lore;
@@ -139,7 +87,7 @@ public class ServerPaymentHistoryView {
                             .replace("{transaction_id}", record.getRefId())
                             .replace("{name}", record.getPlayerName()))
                     .toList();
-        } else { // BANKING
+        } else {
             itemConfig = config.bankItem.clone()
                     .replaceStringInName("{amount}", String.format("%,.0f", record.getAmount()) + "đ");
 
@@ -153,32 +101,19 @@ public class ServerPaymentHistoryView {
         }
 
         ItemBuilder builder = new ItemBuilder(itemConfig.getMaterial())
-                .setDisplayName(mm(itemConfig.getName()));
-
+                .setDisplayName(MenuBuilder.mm(itemConfig.getName()));
         for (String loreLine : lore) {
-            builder.addLoreLines(mm(loreLine));
+            builder.addLoreLines(MenuBuilder.mm(loreLine));
         }
 
         return new SimpleItem(builder);
     }
 
-    /**
-     * Fetches all server payment records asynchronously.
-     */
     private static CompletableFuture<List<PaymentRecord>> fetchPaymentRecordsAsync() {
         return CompletableFuture.supplyAsync(() ->
                 SPPlugin.getService(DatabaseService.class)
                         .getPaymentLogService()
                         .getEntireServerPayments()
-        );
-    }
-
-    /**
-     * Helper method to create AdventureComponentWrapper from MiniMessage string.
-     */
-    private static AdventureComponentWrapper mm(String miniMessage) {
-        return new AdventureComponentWrapper(
-                MessageUtil.getComponentParsed(miniMessage, null)
         );
     }
 }

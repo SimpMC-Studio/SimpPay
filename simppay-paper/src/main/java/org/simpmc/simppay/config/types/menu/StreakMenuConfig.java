@@ -65,8 +65,8 @@ public class StreakMenuConfig {
         public List<String> lore = Arrays.asList(
                 "<gray>Chuỗi nạp thẻ",
                 "",
-                "<yellow>Chuỗi hiện tại: <gold>{current_streak}</gold> days",
-                "<yellow>Chuỗi dài nhất: <gold>{best_streak}</gold> days",
+                "<yellow>Chuỗi hiện tại: <gold>{current_streak}</gold> ngày",
+                "<yellow>Chuỗi dài nhất: <gold>{best_streak}</gold> ngày",
                 ""
         );
     }
@@ -128,8 +128,8 @@ public class StreakMenuConfig {
 
         public RewardItemTemplate() {
             this.material = Material.PAPER;
-            this.name = "<gray>Reward";
-            this.lore = Arrays.asList("<gray>No description");
+            this.name = "<gray>Phần thưởng";
+            this.lore = Arrays.asList("<gray>Không có mô tả");
         }
 
         public RewardItemTemplate(Material material, String name, List<String> lore) {

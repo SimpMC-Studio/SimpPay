@@ -1,6 +1,7 @@
 package org.simpmc.simppay.service;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import okhttp3.OkHttpClient;
@@ -21,8 +22,10 @@ import java.util.List;
 
 public class UpdateCheckerService implements IService, Listener {
 
-    private static final String VERSION_URL =
+    private static final String STABLE_VERSION_URL =
             "https://raw.githubusercontent.com/SimpMC-Studio/SimpPay/main/version.json";
+    private static final String RELEASES_API_URL =
+            "https://api.github.com/repos/SimpMC-Studio/SimpPay/releases";
 
     private OkHttpClient client;
     private volatile boolean hasUpdate = false;
@@ -36,10 +39,15 @@ public class UpdateCheckerService implements IService, Listener {
 
         client = new OkHttpClient();
         String currentVersion = SPPlugin.getInstance().getDescription().getVersion();
+        boolean devChannel = "dev".equalsIgnoreCase(mainConfig.updateChannel);
 
-        SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task ->
-                checkForUpdate(currentVersion)
-        );
+        SPPlugin.getInstance().getFoliaLib().getScheduler().runAsync(task -> {
+            if (devChannel) {
+                checkForDevUpdate(currentVersion);
+            } else {
+                checkForUpdate(currentVersion);
+            }
+        });
     }
 
     @Override
@@ -51,7 +59,7 @@ public class UpdateCheckerService implements IService, Listener {
     }
 
     private void checkForUpdate(String currentVersion) {
-        Request request = new Request.Builder().url(VERSION_URL).build();
+        Request request = new Request.Builder().url(STABLE_VERSION_URL).build();
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
                 MessageUtil.debug("[UpdateChecker] Không thể lấy thông tin phiên bản: HTTP " + response.code());
@@ -85,6 +93,44 @@ public class UpdateCheckerService implements IService, Listener {
         }
     }
 
+    private void checkForDevUpdate(String currentVersion) {
+        Request request = new Request.Builder()
+                .url(RELEASES_API_URL)
+                .header("Accept", "application/vnd.github+json")
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful() || response.body() == null) {
+                MessageUtil.debug("[UpdateChecker] Không thể lấy danh sách releases: HTTP " + response.code());
+                return;
+            }
+
+            String body = response.body().string();
+            JsonArray releases = JsonParser.parseString(body).getAsJsonArray();
+
+            for (JsonElement element : releases) {
+                JsonObject release = element.getAsJsonObject();
+                boolean isPreRelease = release.get("prerelease").getAsBoolean();
+                if (!isPreRelease) continue;
+
+                String tagName = release.get("tag_name").getAsString();
+                if (!tagName.startsWith("dev-")) continue;
+
+                // Found latest dev pre-release
+                if (isNewerVersion(tagName, currentVersion)) {
+                    latestVersion = tagName;
+                    hasUpdate = true;
+                    MessageUtil.info("[SimpPay] Có bản dev mới: " + latestVersion + " (hiện tại: v" + currentVersion + ")");
+                } else {
+                    MessageUtil.debug("[UpdateChecker] Đang dùng bản dev mới nhất: v" + currentVersion);
+                }
+                return;
+            }
+
+        } catch (IOException e) {
+            MessageUtil.debug("[UpdateChecker] Không thể kiểm tra cập nhật dev: " + e.getMessage());
+        }
+    }
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (!hasUpdate || latestVersion == null) return;
@@ -104,9 +150,14 @@ public class UpdateCheckerService implements IService, Listener {
     }
 
     private boolean isNewerVersion(String latest, String current) {
-        String[] latestParts = latest.split("\\.");
-        String[] currentParts = current.split("\\.");
+        // Strip leading non-numeric prefix (e.g. "dev-26.03.5-abc1234" -> compare numerics)
+        String latestClean = latest.replaceAll("[^0-9.]", "");
+        String currentClean = current.replaceAll("[^0-9.]", "");
+
+        String[] latestParts = latestClean.split("\\.");
+        String[] currentParts = currentClean.split("\\.");
         int maxLen = Math.max(latestParts.length, currentParts.length);
+
         for (int i = 0; i < maxLen; i++) {
             int latestNum = i < latestParts.length ? parseIntSafe(latestParts[i]) : 0;
             int currentNum = i < currentParts.length ? parseIntSafe(currentParts[i]) : 0;

@@ -17,10 +17,10 @@ import java.util.List;
 public class StreakConfig {
     public StreakSettings settings = new StreakSettings();
     public List<StreakReward> rewards = new ArrayList<>(List.of(
-            new StreakReward(3, "3 Day Streak", List.of("give %player_name% diamond 3")),
-            new StreakReward(7, "7 Day Streak", List.of("give %player_name% diamond 7")),
-            new StreakReward(14, "14 Day Streak", List.of("give %player_name% diamond 14")),
-            new StreakReward(30, "30 Day Streak", List.of("give %player_name% diamond 30"))
+            new StreakReward(3, "Chuỗi 3 ngày", List.of("give %player_name% diamond 3")),
+            new StreakReward(7, "Chuỗi 7 ngày", List.of("give %player_name% diamond 7")),
+            new StreakReward(14, "Chuỗi 14 ngày", List.of("give %player_name% diamond 14")),
+            new StreakReward(30, "Chuỗi 30 ngày", List.of("give %player_name% diamond 30"))
     ));
 
     @Configuration
@@ -41,12 +41,12 @@ public class StreakConfig {
         /**
          * Message sent when streak increases
          */
-        public String streakIncreaseMessage = "<green>Your payment streak is now <gold>%streak%</gold> days!";
+        public String streakIncreaseMessage = "<green>Chuỗi nạp thẻ của bạn hiện tại là <gold>%streak%</gold> ngày!";
 
         /**
          * Message sent when streak breaks
          */
-        public String streakBreakMessage = "<red>Your payment streak has been reset! Previous best: <gold>%best%</gold> days";
+        public String streakBreakMessage = "<red>Chuỗi nạp thẻ của bạn đã bị reset! Kỷ lục tốt nhất: <gold>%best%</gold> ngày";
     }
 
     @Configuration

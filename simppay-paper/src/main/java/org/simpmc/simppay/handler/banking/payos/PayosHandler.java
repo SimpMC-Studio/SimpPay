@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class PayosHandler extends BankHandler {
     String RETURN_CANCEL_URl = "https://payos.vn";
+    // Package-accessible for test override
+    public String baseApiUrl = "https://api-merchant.payos.vn/v2/payment-requests";
 
     @Override
     public PaymentStatus processPayment(Payment payment) {
@@ -136,8 +138,7 @@ public class PayosHandler extends BankHandler {
     private CompletableFuture<PayosResponse> getTransactionStatus(String paymentID) {
         return CompletableFuture.supplyAsync(() -> {
             PayosConfig config = ConfigManager.getInstance().getConfig(PayosConfig.class);
-            String base = "https://api-merchant.payos.vn/v2/payment-requests/{0}";
-            String url = MessageFormat.format(base,
+            String url = MessageFormat.format(baseApiUrl + "/{0}",
                     paymentID
             );
             try {
@@ -155,8 +156,7 @@ public class PayosHandler extends BankHandler {
 
         return CompletableFuture.supplyAsync(() -> {
             PayosConfig config = ConfigManager.getInstance().getConfig(PayosConfig.class);
-            String base = "https://api-merchant.payos.vn/v2/payment-requests/{0}/cancel";
-            String url = MessageFormat.format(base,
+            String url = MessageFormat.format(baseApiUrl + "/{0}/cancel",
                     paymentID
             );
             try {
@@ -180,7 +180,7 @@ public class PayosHandler extends BankHandler {
                 MessageUtil.warn("[PayOS-RequestTransaction] API key or client ID is not configured in payos-config.yml");
                 return null;
             }
-            String base = "https://api-merchant.payos.vn/v2/payment-requests";
+            String base = baseApiUrl;
             try {
                 String orderid = String.valueOf(SPPlugin.getService(OrderIDService.class).getNextId());
                 String valuetoBeHashed = MessageFormat.format("amount={0,number,#}&cancelUrl={1}&description={2}&orderCode={3}&returnUrl={4}",

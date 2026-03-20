@@ -1,12 +1,12 @@
 package org.simpmc.simppay.forms;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.geysermc.cumulus.form.CustomForm;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.config.ConfigManager;
 import org.simpmc.simppay.config.types.CardConfig;
 import org.simpmc.simppay.config.types.MessageConfig;
+import org.simpmc.simppay.config.types.menu.FormsConfig;
 import org.simpmc.simppay.data.PaymentStatus;
 import org.simpmc.simppay.data.card.CardPrice;
 import org.simpmc.simppay.data.card.CardType;
@@ -23,14 +23,16 @@ import java.util.UUID;
 public class NaptheForm {
     public static CustomForm getNapTheForm(Player player) {
         List<String> cardTypes = ConfigManager.getInstance().getConfig(CardConfig.class).getEnabledCardTypes().stream().map(card -> card.name()).toList();
+        FormsConfig.NaptheFormStrings f = ConfigManager.getInstance().getConfig(FormsConfig.class).naptheForm;
+
         return CustomForm.builder()
-                .title("SimpPay - Nạp thẻ")
-                .dropdown("Loại Thẻ", cardTypes)
-                .dropdown("Mệnh Giá", CardPrice.getAllCardPricesFormatted())
-                .label(ChatColor.RED + "Lưu ý: Nhập sai mệnh giá sẽ nhận xu tương ứng giá trị thật của thẻ")
-                .input("Số Serial", "Nhập số serial của thẻ")
-                .input("Mã Thẻ", "Nhập mã PIN của thẻ")
-                .label("Bấm Submit để nạp thẻ")
+                .title(f.title)
+                .dropdown(f.cardTypeLabel, cardTypes)
+                .dropdown(f.priceLabel, CardPrice.getAllCardPricesFormatted())
+                .label(f.warning)
+                .input(f.serialLabel, f.serialPlaceholder)
+                .input(f.pinLabel, f.pinPlaceholder)
+                .label(f.submitLabel)
                 .validResultHandler((customForm, res) -> {
                     CardType type = CardType.fromString(cardTypes.get(res.asDropdown()));
                     CardPrice amount = CardPrice.getCardPriceByIndex(res.asDropdown());
@@ -42,7 +44,7 @@ public class NaptheForm {
                         player.sendMessage(MessageUtil.getComponentParsed(messageConfig.invalidParam, player));
                         return;
                     }
-                    UUID uuid = UUID.nameUUIDFromBytes(serial.getBytes()); // payment uuid is based on serial number of the card
+                    UUID uuid = UUID.nameUUIDFromBytes(serial.getBytes());
                     PaymentDetail detail = CardDetail.builder()
                             .serial(serial)
                             .pin(pin)
@@ -62,8 +64,6 @@ public class NaptheForm {
                         MessageUtil.sendMessage(player, messageConfig.failedCard);
                         SoundUtil.sendSound(player, messageConfig.soundEffect.get(PaymentStatus.FAILED).toSound());
                     }
-                    return;
-
                 })
                 .build();
     }

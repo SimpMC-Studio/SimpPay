@@ -9,6 +9,7 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import org.simpmc.simppay.SPPlugin;
 import org.simpmc.simppay.config.annotations.Folder;
+import org.simpmc.simppay.config.migration.MigrationRegistry;
 import org.simpmc.simppay.config.serializers.KeySerializer;
 import org.simpmc.simppay.config.serializers.SoundComponentSerializer;
 import org.simpmc.simppay.config.types.*;
@@ -17,6 +18,7 @@ import org.simpmc.simppay.config.types.banking.PayosConfig;
 import org.simpmc.simppay.config.types.banking.SepayConfig;
 import org.simpmc.simppay.config.types.banking.Web2mConfig;
 import org.simpmc.simppay.config.types.card.*;
+import org.simpmc.simppay.config.types.menu.FormsConfig;
 import org.simpmc.simppay.config.types.menu.PaymentHistoryMenuConfig;
 import org.simpmc.simppay.config.types.menu.ServerPaymentHistoryMenuConfig;
 import org.simpmc.simppay.config.types.menu.StreakMenuConfig;
@@ -36,42 +38,59 @@ import static de.exlll.configlib.DeserializationCoercionType.BOOLEAN_TO_STRING;
 import static de.exlll.configlib.DeserializationCoercionType.NUMBER_TO_STRING;
 
 public class ConfigManager {
-    // holds loaded config instances
-    private static final Map<Class<?>, Object> configs = new HashMap<>();
     @Getter
     private static ConfigManager instance;
+
+    private final Map<Class<?>, Object> configs = new HashMap<>();
     private final SPPlugin plugin;
+
     private final List<Class<?>> configClasses = List.of(
-            // TODO: ClassGraph auto scan ?
-            PayosConfig.class,
-            SepayConfig.class,  // Phase 4: Sepay integration
-            ThesieutocConfig.class,
-            CardPinMenuConfig.class,
-            CardSerialMenuConfig.class,
-            CardListMenuConfig.class,
-            CardPriceMenuConfig.class,
-            PaymentHistoryMenuConfig.class,
-            BankingConfig.class,
-            CardConfig.class,
-            CoinsConfig.class,
-            DatabaseConfig.class,
+            // --- Core ---
             MainConfig.class,
             MessageConfig.class,
-            ServerPaymentHistoryMenuConfig.class,
-            MilestonesPlayerConfig.class,  // Phase 3.2: New human-readable format
-            MilestonesServerConfig.class,  // Phase 3.2: New human-readable format
-            StreakConfig.class,  // Phase 5: Streak system
-            StreakMenuConfig.class,  // Phase 5: Streak menu configuration
-            NaplandauConfig.class,
+            DatabaseConfig.class,
+            CoinsConfig.class,
+            BankingConfig.class,
+            CardConfig.class,
+
+            // --- Banking Gateways ---
+            PayosConfig.class,
+            SepayConfig.class,
+            Web2mConfig.class,
+
+            // --- Card Gateways ---
+            ThesieutocConfig.class,
             Gachthe1sConfig.class,
             Card2KConfig.class,
-            Web2mConfig.class,
             ThesieureConfig.class,
             Doithe1sConfig.class,
+
+            // --- Menus (Java) ---
+            CardListMenuConfig.class,
+            CardPriceMenuConfig.class,
+            CardPinMenuConfig.class,
+            CardSerialMenuConfig.class,
+            PaymentHistoryMenuConfig.class,
+            ServerPaymentHistoryMenuConfig.class,
+            StreakMenuConfig.class,
+
+            // --- Menus (Bedrock) ---
+            FormsConfig.class,
+
+            // --- Milestones & Rewards ---
+            MilestonesPlayerConfig.class,
+            MilestonesServerConfig.class,
+            StreakConfig.class,
+            NaplandauConfig.class,
+            MocNapConfig.class,
+            MocNapServerConfig.class,
+
+            // --- Integrations ---
             DiscordConfig.class
     );
-    // holds file paths for each config type
+
     private final Map<Class<?>, Path> configPaths = new HashMap<>();
+
     private final YamlConfigurationProperties properties = ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
             .addSerializer(Key.class, new KeySerializer())
             .addSerializer(Sound.class, new SoundComponentSerializer())
@@ -86,8 +105,6 @@ public class ConfigManager {
     public ConfigManager(SPPlugin plugin) {
         this.plugin = plugin;
         instance = this;
-        // build default YAML properties
-        // prepare paths and load all
         initPaths();
         registerAll();
     }
@@ -104,10 +121,7 @@ public class ConfigManager {
 
     private Path getConfigPath(Class<?> clazz) {
         String fileName = getConfigFileName(clazz.getSimpleName()) + ".yml";
-
-
         if (clazz.isAnnotationPresent(Folder.class)) {
-            // if the class is annotated with @Folder, create a subfolder
             String folderName = clazz.getAnnotation(Folder.class).value();
             File folder = new File(plugin.getDataFolder(), folderName);
             if (!folder.exists()) {
@@ -118,12 +132,10 @@ public class ConfigManager {
         return Paths.get(plugin.getDataFolder().getPath(), fileName);
     }
 
-
     @SuppressWarnings("unchecked")
     private void registerAll() {
         plugin.getLogger().info("Loading all configurations");
         for (Class<?> rawClass : configClasses) {
-            // capture wildcard and process each
             registerConfig((Class<Object>) rawClass);
         }
         plugin.getLogger().info("All configurations loaded successfully");
@@ -131,14 +143,21 @@ public class ConfigManager {
 
     private <T> void registerConfig(Class<T> cfgClass) {
         Path path = configPaths.get(cfgClass);
-
-        YamlConfigurationStore<T> store = new YamlConfigurationStore<>(cfgClass, properties);
-
-        store.update(path);
-
-        // load (with properties on first load)
-        T loaded = store.load(path);
-        configs.put(cfgClass, loaded);
+        try {
+            MigrationRegistry.migrateIfNeeded(cfgClass, path);
+            YamlConfigurationStore<T> store = new YamlConfigurationStore<>(cfgClass, properties);
+            store.update(path);
+            T loaded = store.load(path);
+            configs.put(cfgClass, loaded);
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to load config for " + cfgClass.getSimpleName() + ": " + e.getMessage());
+            plugin.getLogger().severe("Using default values for " + cfgClass.getSimpleName());
+            try {
+                configs.put(cfgClass, cfgClass.getDeclaredConstructor().newInstance());
+            } catch (Exception ex) {
+                plugin.getLogger().severe("Could not create default instance for " + cfgClass.getSimpleName());
+            }
+        }
     }
 
     /**
@@ -160,7 +179,6 @@ public class ConfigManager {
     public <T> T getConfig(Class<T> cls) {
         return (T) configs.get(cls);
     }
-
 
     private String getConfigFileName(String name) {
         var builder = new StringBuilder(name.length());

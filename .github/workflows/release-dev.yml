@@ -1,0 +1,52 @@
+name: Release Dev
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  release-dev:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Compute dev version
+        id: version
+        run: |
+          YEAR=$(date +'%y')
+          MONTH=$(date +'%m')
+          SHORT_COMMIT=$(git rev-parse --short HEAD)
+          # Count commits this month (YYYY-MM-01 to now)
+          MONTH_START="${YEAR}-${MONTH}-01"
+          N=$(git log --oneline --after="${MONTH_START}" | wc -l | tr -d ' ')
+          VERSION="dev-${YEAR}.${MONTH}.${N}-${SHORT_COMMIT}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Dev version: ${VERSION}"
+
+      - name: Build
+        run: ./gradlew build -PoverrideVersion=${{ steps.version.outputs.version }}
+
+      - name: Create pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Dev Build ${{ steps.version.outputs.version }}
+          prerelease: true
+          files: build/libs/SimpPay-*.jar
+          body: |
+            Automated dev build from commit ${{ github.sha }}
+
+            > This is a pre-release build. Use at your own risk.

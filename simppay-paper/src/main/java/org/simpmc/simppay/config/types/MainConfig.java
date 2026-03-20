@@ -6,11 +6,15 @@ import de.exlll.configlib.Configuration;
 @Configuration
 public class MainConfig {
     public boolean debug = false;
+
     @Comment("Thời gian gọi API kiểm tra thẻ và giao dịch ngân hàng, tính theo giây")
     public int intervalApiCall = 5;
 
     @Comment("Kiểm tra cập nhật tự động khi khởi động server")
     public boolean updateChecker = true;
+
+    @Comment("Kênh cập nhật: 'stable' chỉ thông báo bản phát hành chính thức, 'dev' bao gồm cả bản pre-release")
+    public String updateChannel = "stable";
 
     @Comment("Cấu hình BossBar milestone")
     public BossBarSettings bossbar = new BossBarSettings();
