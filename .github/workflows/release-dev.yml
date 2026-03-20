@@ -37,7 +37,7 @@ jobs:
           echo "Dev version: ${VERSION}"
 
       - name: Build
-        run: ./gradlew build -PoverrideVersion=${{ steps.version.outputs.version }}
+        run: chmod +x gradlew && ./gradlew build -PoverrideVersion=${{ steps.version.outputs.version }}
 
       - name: Create pre-release
         uses: softprops/action-gh-release@v2
