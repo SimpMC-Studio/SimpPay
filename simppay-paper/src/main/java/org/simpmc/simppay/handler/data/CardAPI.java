@@ -3,14 +3,12 @@ package org.simpmc.simppay.handler.data;
 import org.simpmc.simppay.config.types.card.*;
 import org.simpmc.simppay.data.card.CardType;
 import org.simpmc.simppay.handler.PaymentHandler;
-import org.simpmc.simppay.handler.card.TSTHandler;
 import org.simpmc.simppay.handler.card.nencer.NencerCardHandler;
 
 import java.util.Map;
 import java.util.function.Supplier;
 
 public enum CardAPI {
-    THESIEUTOC(TSTHandler::new),
     CARD2K(() -> new NencerCardHandler(
             "https://card2k.com/chargingws/v2",
             Card2KConfig.class, "Card2K", Map.of())),

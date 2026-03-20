@@ -13,8 +13,8 @@ import java.util.stream.Collectors;
 @Configuration
 @Folder("card")
 public class CardConfig {
-    @Comment("Dịch vụ gạch thẻ: THESIEUTOC, GT1SCOM, CARD2K, THESIEURECOM, DOITHE1SVN")
-    public CardAPI cardApi = CardAPI.THESIEUTOC;
+    @Comment("Dịch vụ gạch thẻ: GT1SCOM, CARD2K, THESIEURECOM, DOITHE1SVN")
+    public CardAPI cardApi = CardAPI.GT1SCOM;
 
     @Comment("Các nhà mạng đang bật")
     public Map<CardType, Boolean> cardTypes = Map.of(

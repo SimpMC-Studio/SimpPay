@@ -59,7 +59,6 @@ public class ConfigManager {
             Web2mConfig.class,
 
             // --- Card Gateways ---
-            ThesieutocConfig.class,
             Gachthe1sConfig.class,
             Card2KConfig.class,
             ThesieureConfig.class,

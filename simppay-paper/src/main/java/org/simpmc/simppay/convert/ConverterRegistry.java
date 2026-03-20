@@ -3,7 +3,7 @@ package org.simpmc.simppay.convert;
 import java.util.function.Supplier;
 
 public enum ConverterRegistry {
-    THESIEUTOC("thesieutoc", "Thesieutoc", ThesieutocConverter::new);
+    ;
     // Future entries: DOTMAN("dotman", "DotMan", DotManConverter::new), etc.
 
     public final String commandName;
