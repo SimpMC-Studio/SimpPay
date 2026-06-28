@@ -30,7 +30,7 @@ public class PaymentRecord {
     public static PaymentRecord fromBank(BankingPayment bp) {
         return PaymentRecord.builder()
                 .paymentId(bp.getPaymentID())
-                .timestamp(Date.from(Instant.ofEpochSecond(bp.getTimestamp()))) // TODO: better way to handle this
+                .timestamp(Date.from(Instant.ofEpochMilli(bp.getTimestamp()))) // TODO: better way to handle this
                 .playerName(bp.getPlayer().getName())
                 .paymentType(PaymentType.BANKING)
                 .provider(bp.getApiProvider().name())
@@ -46,7 +46,7 @@ public class PaymentRecord {
     public static PaymentRecord fromCard(CardPayment cp) {
         return PaymentRecord.builder()
                 .paymentId(cp.getPaymentID())
-                .timestamp(Date.from(Instant.ofEpochSecond(cp.getTimestamp()))) // TODO: better way to handle this
+                .timestamp(Date.from(Instant.ofEpochMilli(cp.getTimestamp()))) // TODO: better way to handle this
                 .paymentType(PaymentType.CARD)
                 .playerName(cp.getPlayer().getName())
                 .provider(cp.getApiProvider().name())
